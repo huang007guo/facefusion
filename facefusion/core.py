@@ -418,7 +418,7 @@ def process_video(start_time : float) -> None:
 	if facefusion.globals.shutdown:
 		# windows
 		if platform.system() == 'Windows':
-			os.system('shutdown -s -t 0')
+			os.system('shutdown -s -t 120')
 			return
 		# linux
 		if platform.system() == 'Linux':
