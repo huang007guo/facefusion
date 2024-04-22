@@ -18,6 +18,10 @@ def render() -> None:
 		value.append('skip-audio')
 	if facefusion.globals.skip_download:
 		value.append('skip-download')
+	if facefusion.globals.hwaccel_cuda:
+		value.append('hwaccel-cuda')
+	if facefusion.globals.shutdown:
+		value.append('shutdown')
 	COMMON_OPTIONS_CHECKBOX_GROUP = gradio.Checkboxgroup(
 		label = wording.get('uis.common_options_checkbox_group'),
 		choices = uis_choices.common_options,
@@ -33,3 +37,4 @@ def update(common_options : List[str]) -> None:
 	facefusion.globals.keep_temp = 'keep-temp' in common_options
 	facefusion.globals.skip_audio = 'skip-audio' in common_options
 	facefusion.globals.skip_download = 'skip-download' in common_options
+	facefusion.globals.shutdown = 'shutdown' in common_options

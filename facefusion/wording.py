@@ -61,6 +61,8 @@ WORDING : Dict[str, Any] =\
 		# misc
 		'force_download': 'force automate downloads and exit',
 		'skip_download': 'omit automate downloads and remote lookups',
+		'shutdown': 'shutdown the computer after processing',
+		'hwaccel-cuda': 'use the CUDA hardware acceleration for the model inference',
 		'headless': 'run the program without a user interface',
 		'log_level': 'adjust the message severity displayed in the terminal',
 		# execution

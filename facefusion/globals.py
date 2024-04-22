@@ -9,6 +9,8 @@ output_path : Optional[str] = None
 # misc
 force_download : Optional[bool] = None
 skip_download : Optional[bool] = None
+hwaccel_cuda : Optional[bool] = None
+shutdown : Optional[bool] = None
 headless : Optional[bool] = None
 log_level : Optional[LogLevel] = None
 # execution
@@ -48,6 +50,7 @@ output_image_resolution : Optional[str] = None
 output_video_encoder : Optional[OutputVideoEncoder] = None
 output_video_preset : Optional[OutputVideoPreset] = None
 output_video_quality : Optional[int] = None
+# 输出视频分辨率
 output_video_resolution : Optional[str] = None
 output_video_fps : Optional[float] = None
 skip_audio : Optional[bool] = None

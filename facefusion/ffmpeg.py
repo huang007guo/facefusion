@@ -12,6 +12,9 @@ from facefusion.vision import restrict_video_fps
 
 def run_ffmpeg(args : List[str]) -> bool:
 	commands = [ 'ffmpeg', '-hide_banner', '-loglevel', 'error' ]
+	# 增加 '-hwaccel', 'cuda'
+	if facefusion.globals.hwaccel_cuda:
+		commands.extend(['-hwaccel', 'cuda'])
 	commands.extend(args)
 	process = subprocess.Popen(commands, stderr = subprocess.PIPE, stdout = subprocess.PIPE)
 
@@ -27,6 +30,9 @@ def run_ffmpeg(args : List[str]) -> bool:
 
 def open_ffmpeg(args : List[str]) -> subprocess.Popen[bytes]:
 	commands = [ 'ffmpeg', '-hide_banner', '-loglevel', 'quiet' ]
+	# 增加 '-hwaccel', 'cuda'
+	if facefusion.globals.hwaccel_cuda:
+		commands.extend(['-hwaccel', 'cuda'])
 	commands.extend(args)
 	return subprocess.Popen(commands, stdin = subprocess.PIPE, stdout = subprocess.PIPE)
 

@@ -1,4 +1,5 @@
 import os
+import platform
 
 os.environ['OMP_NUM_THREADS'] = '1'
 
@@ -44,6 +45,10 @@ def cli() -> None:
 	group_misc = program.add_argument_group('misc')
 	group_misc.add_argument('--force-download', help = wording.get('help.force_download'), action = 'store_true', default = config.get_bool_value('misc.force_download'))
 	group_misc.add_argument('--skip-download', help = wording.get('help.skip_download'), action = 'store_true', default = config.get_bool_value('misc.skip_download'))
+	# 处理完成后自动关机
+	group_misc.add_argument('--shutdown', help = wording.get('help.shutdown'), action = 'store_true', default = config.get_bool_value('misc.shutdown'))
+	#开启 -hwaccel cuda
+	group_misc.add_argument('--hwaccel-cuda', help = wording.get('help.hwaccel_cuda'), action = 'store_true', default = config.get_bool_value('misc.hwaccel_cuda'))
 	group_misc.add_argument('--headless', help = wording.get('help.headless'), action = 'store_true', default = config.get_bool_value('misc.headless'))
 	group_misc.add_argument('--log-level', help = wording.get('help.log_level'), default = config.get_str_value('misc.log_level', 'info'), choices = logger.get_log_levels())
 	# execution
@@ -130,6 +135,8 @@ def apply_args(program : ArgumentParser) -> None:
 	# misc
 	facefusion.globals.force_download = args.force_download
 	facefusion.globals.skip_download = args.skip_download
+	facefusion.globals.shutdown = args.shutdown
+	facefusion.globals.hwaccel_cuda = args.hwaccel_cuda
 	facefusion.globals.headless = args.headless
 	facefusion.globals.log_level = args.log_level
 	# execution
@@ -406,7 +413,17 @@ def process_video(start_time : float) -> None:
 		conditional_log_statistics()
 	else:
 		logger.error(wording.get('processing_video_failed'), __name__.upper())
+	# 结束执行
 	process_manager.end()
+	if facefusion.globals.shutdown:
+		# windows
+		if platform.system() == 'Windows':
+			os.system('shutdown -s -t 0')
+			return
+		# linux
+		if platform.system() == 'Linux':
+			os.system('shutdown -h now')
+			return
 
 
 def is_process_stopping() -> bool:
