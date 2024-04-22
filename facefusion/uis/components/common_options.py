@@ -38,3 +38,4 @@ def update(common_options : List[str]) -> None:
 	facefusion.globals.skip_audio = 'skip-audio' in common_options
 	facefusion.globals.skip_download = 'skip-download' in common_options
 	facefusion.globals.shutdown = 'shutdown' in common_options
+	facefusion.globals.hwaccel_cuda = 'hwaccel-cuda' in common_options

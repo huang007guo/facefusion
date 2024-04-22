@@ -41,6 +41,8 @@ misc:
   --skip-download                                                                                                                                       omit automate downloads and remote lookups
   --headless                                                                                                                                            run the program without a user interface
   --log-level {error,warn,info,debug}                                                                                                                   adjust the message severity displayed in the terminal
+  --shutdown
+  --hwaccel-cuda
 
 execution:
   --execution-providers EXECUTION_PROVIDERS [EXECUTION_PROVIDERS ...]                                                                                   accelerate the model inference using different providers (choices: cpu, ...)
