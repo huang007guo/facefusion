@@ -8,6 +8,7 @@ import filetype
 from pathlib import Path
 
 import facefusion.globals
+from facefusion import logger
 
 TEMP_DIRECTORY_PATH = os.path.join(tempfile.gettempdir(), 'facefusion')
 TEMP_OUTPUT_VIDEO_NAME = 'temp.mp4'
@@ -47,8 +48,9 @@ def get_temp_directory_path(target_path : str) -> str:
 	# target_name = target_name.replace('+', '_').replace('/', '_')
 	# md5路径
 	target_name = get_str_md5(target_name)
-
-	return os.path.join(facefusion.globals.temp_dir if facefusion.globals.temp_dir else TEMP_DIRECTORY_PATH , target_name)
+	temp_path = os.path.join(facefusion.globals.temp_dir if facefusion.globals.temp_dir else TEMP_DIRECTORY_PATH , target_name)
+	logger.info("temp_path:", temp_path)
+	return temp_path
 
 
 def get_temp_output_video_path(target_path : str) -> str:
