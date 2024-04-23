@@ -22,13 +22,31 @@ def get_temp_frames_pattern(target_path : str, temp_frame_prefix : str) -> str:
 	temp_directory_path = get_temp_directory_path(target_path)
 	return os.path.join(temp_directory_path, temp_frame_prefix + '.' + facefusion.globals.temp_frame_format)
 
+import hashlib
+
+def get_str_md5(content: str) -> str:
+	"""
+	计算字符串的 MD5 哈希值。
+
+	参数:
+		content (str): 待计算哈希值的字符串。
+
+	返回:
+		str: 计算得到的 MD5 哈希值，以十六进制字符串形式表示。
+	"""
+	m = hashlib.md5()
+	m.update(content.encode('utf-8'))  # 将字符串编码为字节串，然后更新到 MD5 对象
+	return m.hexdigest()  # 返回 MD5 哈希值的十六进制表示
+
 # 获得临时目录路径
 def get_temp_directory_path(target_path : str) -> str:
 	target_name, _ = os.path.splitext(os.path.basename(target_path))
 	# target_path做base64
-	target_name = base64.encodebytes(target_name.encode()).decode()
-	# 替换为一个合法路径
-	target_name = target_name.replace('+', '_').replace('/', '_')
+	# target_name = base64.encodebytes(target_name.encode()).decode()
+	# 替换为一个合法路径 系统找不到指定的路径。: 'C:\\Users\\ADMINI~1.PC-\\AppData\\Local\\Temp\\facefusion\\5peg56CB56C06KejLUFUSUQtNDU0IOaIkeeahOavjeS6suaIkOS4uuaIkeiHquW3seeahCBPbmFo\nbyDlubbluK7liqnov5vooYzmgKfmsrvnlpfoiJ7ljp_po57lsLs=\n'
+	# target_name = target_name.replace('+', '_').replace('/', '_')
+	# md5路径
+	target_name = get_str_md5(target_name)
 
 	return os.path.join(facefusion.globals.temp_dir if facefusion.globals.temp_dir else TEMP_DIRECTORY_PATH , target_name)
 
