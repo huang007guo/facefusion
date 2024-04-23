@@ -44,5 +44,7 @@ def get_download_size(url : str) -> int:
 
 def is_download_done(url : str, file_path : str) -> bool:
 	if is_file(file_path):
-		return get_download_size(url) == os.path.getsize(file_path)
+		readSize = get_download_size(url)
+		nowSize = os.path.getsize(file_path)
+		return (readSize == 0 and nowSize > 0) or (readSize > 0 and readSize == os.path.getsize(file_path))
 	return False

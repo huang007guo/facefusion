@@ -1,3 +1,4 @@
+import base64
 from typing import List, Optional
 import glob
 import os
@@ -21,10 +22,15 @@ def get_temp_frames_pattern(target_path : str, temp_frame_prefix : str) -> str:
 	temp_directory_path = get_temp_directory_path(target_path)
 	return os.path.join(temp_directory_path, temp_frame_prefix + '.' + facefusion.globals.temp_frame_format)
 
-
+# 获得临时目录路径
 def get_temp_directory_path(target_path : str) -> str:
 	target_name, _ = os.path.splitext(os.path.basename(target_path))
-	return os.path.join(TEMP_DIRECTORY_PATH, target_name)
+	# target_path做base64
+	target_name = base64.encodebytes(target_name.encode()).decode()
+	# 替换为一个合法路径
+	target_name = target_name.replace('+', '_').replace('/', '_')
+
+	return os.path.join(facefusion.globals.temp_dir if facefusion.globals.temp_dir else TEMP_DIRECTORY_PATH , target_name)
 
 
 def get_temp_output_video_path(target_path : str) -> str:
