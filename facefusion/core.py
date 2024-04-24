@@ -352,7 +352,7 @@ def process_image(start_time : float) -> None:
 		logger.error(wording.get('processing_image_failed'), __name__.upper())
 	process_manager.end()
 
-
+# 视频处理核心流程
 def process_video(start_time : float) -> None:
 	normed_output_path = normalize_output_path(facefusion.globals.target_path, facefusion.globals.output_path)
 	if analyse_video(facefusion.globals.target_path, facefusion.globals.trim_frame_start, facefusion.globals.trim_frame_end):
