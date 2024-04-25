@@ -63,6 +63,7 @@ def start() -> Tuple[gradio.Button, gradio.Button]:
 	return gradio.Button(visible = False), gradio.Button(visible = True)
 
 
+# ui提交的开始运行的主函数
 def process() -> Tuple[gradio.Image, gradio.Video, gradio.Button, gradio.Button]:
 	normed_output_path = normalize_output_path(facefusion.globals.target_path, facefusion.globals.output_path)
 	if facefusion.globals.system_memory_limit > 0:

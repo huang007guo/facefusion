@@ -264,6 +264,7 @@ def pre_check() -> bool:
 	return True
 
 
+#开始运行的主函数
 def conditional_process() -> None:
 	start_time = time()
 	for frame_processor_module in get_frame_processors_modules(facefusion.globals.frame_processors):
@@ -430,6 +431,7 @@ def process_video(start_time : float) -> None:
 		logger.error(wording.get('processing_video_failed'), __name__.upper())
 	# 结束执行
 	process_manager.end()
+	# todo hank 这里可能没有移动完成
 	if facefusion.globals.shutdown:
 		# windows
 		if platform.system() == 'Windows':
