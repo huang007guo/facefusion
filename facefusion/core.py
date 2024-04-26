@@ -25,7 +25,8 @@ from facefusion.normalizer import normalize_output_path, normalize_padding, norm
 from facefusion.memory import limit_system_memory
 from facefusion.statistics import conditional_log_statistics
 from facefusion.download import conditional_download
-from facefusion.filesystem import list_directory, get_temp_frame_paths, create_temp, move_temp, clear_temp, is_image, is_video, filter_audio_paths, resolve_relative_path
+from facefusion.filesystem import list_directory, get_temp_frame_paths, create_temp, move_temp, clear_temp, is_image, \
+	is_video, filter_audio_paths, resolve_relative_path, is_temp_moved
 from facefusion.ffmpeg import extract_frames, merge_video, copy_image, finalize_image, restore_audio, replace_audio
 from facefusion.vision import read_image, read_static_images, detect_image_resolution, restrict_video_fps, create_image_resolutions, get_video_frame, detect_video_resolution, detect_video_fps, restrict_video_resolution, restrict_image_resolution, create_video_resolutions, pack_resolution, unpack_resolution
 
@@ -412,6 +413,7 @@ def process_video(start_time : float) -> None:
 				logger.warn(wording.get('restoring_audio_skipped'), __name__.upper())
 				move_temp(facefusion.globals.target_path, normed_output_path)
 		else:
+			# 这里没有拿进度导致会提前关闭
 			if restore_audio(facefusion.globals.target_path, normed_output_path, facefusion.globals.output_video_fps):
 				logger.debug(wording.get('restoring_audio_succeed'), __name__.upper())
 			else:
@@ -419,9 +421,6 @@ def process_video(start_time : float) -> None:
 					return
 				logger.warn(wording.get('restoring_audio_skipped'), __name__.upper())
 				move_temp(facefusion.globals.target_path, normed_output_path)
-	# clear temp
-	logger.debug(wording.get('clearing_temp'), __name__.upper())
-	clear_temp(facefusion.globals.target_path)
 	# validate video
 	if is_video(normed_output_path):
 		seconds = '{:.2f}'.format((time() - start_time))
@@ -433,6 +432,20 @@ def process_video(start_time : float) -> None:
 	process_manager.end()
 	# todo hank 这里可能没有移动完成
 	if facefusion.globals.shutdown:
+		# # 如果不是keep_temp需要循环检查临时文件是否移动完成,如果检查时间大于1小时则打印日志并强制关闭
+		# now_time = time()
+		# while not is_temp_moved(facefusion.globals.target_path):
+		# 	logger.info("临时文件移动中...")
+		# 	sleep(20)
+		# 	if (now_time - start_time) > 2000:
+		# 		logger.error("临时文件移动超时,强制关机", __name__.upper())
+		# 		return
+		# 	if not facefusion.globals.shutdown:
+		# 		logger.info("取消关机", __name__.upper())
+		# 		return
+		# clear temp
+		logger.debug(wording.get('clearing_temp'), __name__.upper())
+		clear_temp(facefusion.globals.target_path)
 		# windows
 		if platform.system() == 'Windows':
 			os.system('shutdown -s -t 120')
@@ -441,7 +454,10 @@ def process_video(start_time : float) -> None:
 		if platform.system() == 'Linux':
 			os.system('shutdown -h now')
 			return
-
+	else:
+		# clear temp
+		logger.debug(wording.get('clearing_temp'), __name__.upper())
+		clear_temp(facefusion.globals.target_path)
 
 def is_process_stopping() -> bool:
 	if process_manager.is_stopping():

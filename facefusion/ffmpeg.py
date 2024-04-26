@@ -10,7 +10,7 @@ from facefusion.filesystem import get_temp_frames_pattern, get_temp_output_video
 from facefusion.vision import restrict_video_fps
 
 
-def run_ffmpeg(args : List[str]) -> bool:
+def run_ffmpeg(args : List[str], must_done : bool = False) -> bool:
 	commands = [ 'ffmpeg', '-hide_banner', '-loglevel', 'error' ]
 	# 增加 '-hwaccel', 'cuda'
 	if facefusion.globals.hwaccel_cuda:
@@ -18,12 +18,13 @@ def run_ffmpeg(args : List[str]) -> bool:
 	commands.extend(args)
 	process = subprocess.Popen(commands, stderr = subprocess.PIPE, stdout = subprocess.PIPE)
 
-	while process_manager.is_processing():
+	while process_manager.is_processing() or must_done:
 		try:
 			if facefusion.globals.log_level == 'debug':
 				log_debug(process)
 			return process.wait(timeout = 0.5) == 0
 		except subprocess.TimeoutExpired:
+			logger.error('ffmpeg process timeout cmd:'+' '.join(commands), __name__.upper())
 			continue
 	return process.returncode == 0
 
@@ -121,7 +122,7 @@ def restore_audio(target_path : str, output_path : str, output_video_fps : Fps) 
 		end_time = trim_frame_end / output_video_fps
 		commands.extend([ '-to', str(end_time) ])
 	commands.extend([ '-i', target_path, '-c', 'copy', '-map', '0:v:0', '-map', '1:a:0', '-shortest', '-y', output_path ])
-	return run_ffmpeg(commands)
+	return run_ffmpeg(commands, True)
 
 
 def replace_audio(target_path : str, audio_path : str, output_path : str) -> bool:
