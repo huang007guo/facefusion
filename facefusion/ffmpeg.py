@@ -128,7 +128,7 @@ def restore_audio(target_path : str, output_path : str, output_video_fps : Fps) 
 def replace_audio(target_path : str, audio_path : str, output_path : str) -> bool:
 	temp_output_path = get_temp_output_video_path(target_path)
 	commands = [ '-i', temp_output_path, '-i', audio_path, '-af', 'apad', '-shortest', '-y', output_path ]
-	return run_ffmpeg(commands)
+	return run_ffmpeg(commands, True)
 
 
 def map_nvenc_preset(output_video_preset : OutputVideoPreset) -> Optional[str]:

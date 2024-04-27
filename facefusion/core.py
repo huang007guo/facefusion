@@ -432,17 +432,17 @@ def process_video(start_time : float) -> None:
 	process_manager.end()
 	# todo hank 这里可能没有移动完成
 	if facefusion.globals.shutdown:
-		# # 如果不是keep_temp需要循环检查临时文件是否移动完成,如果检查时间大于1小时则打印日志并强制关闭
-		# now_time = time()
-		# while not is_temp_moved(facefusion.globals.target_path):
-		# 	logger.info("临时文件移动中...")
-		# 	sleep(20)
-		# 	if (now_time - start_time) > 2000:
-		# 		logger.error("临时文件移动超时,强制关机", __name__.upper())
-		# 		return
-		# 	if not facefusion.globals.shutdown:
-		# 		logger.info("取消关机", __name__.upper())
-		# 		return
+		# 如果不是keep_temp需要循环检查临时文件是否移动完成,如果检查时间大于1小时则打印日志并强制关闭
+		now_time = time()
+		while not is_temp_moved(facefusion.globals.target_path, normed_output_path):
+			logger.info("临时文件移动中...")
+			sleep(20)
+			if (now_time - start_time) > 3000:
+				logger.error("临时文件移动超时,强制关机", __name__.upper())
+				return
+			if not facefusion.globals.shutdown:
+				logger.info("取消关机", __name__.upper())
+				return
 		# clear temp
 		logger.debug(wording.get('clearing_temp'), __name__.upper())
 		clear_temp(facefusion.globals.target_path)

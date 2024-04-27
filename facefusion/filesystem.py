@@ -76,10 +76,10 @@ def move_temp(target_path: str, output_path: str) -> None:
 		shutil.move(temp_output_video_path, output_path)
 
 
-# 检查临时文件是否移动完成
-def is_temp_moved(target_path: str) -> bool:
+# 检查临时文件是否移动完成, output_path不是文件或output_path是文件大于等于temp_output_video_path的文件大小
+def is_temp_moved(target_path: str, output_path: str) -> bool:
 	temp_output_video_path = get_temp_output_video_path(target_path)
-	return not is_file(temp_output_video_path)
+	return not is_file(temp_output_video_path) or (is_file(output_path) and os.path.getsize(output_path) >= os.path.getsize(temp_output_video_path))
 
 
 def clear_temp(target_path: str) -> None:
