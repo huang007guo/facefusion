@@ -24,7 +24,7 @@ def run_ffmpeg(args : List[str], must_done : bool = False) -> bool:
 				log_debug(process)
 			return process.wait(timeout = 0.5) == 0
 		except subprocess.TimeoutExpired:
-			logger.error('ffmpeg process timeout cmd:'+' '.join(commands), __name__.upper())
+			# logger.error('ffmpeg process timeout cmd:'+' '.join(commands), __name__.upper())
 			continue
 	return process.returncode == 0
 
