@@ -435,7 +435,7 @@ def process_video(start_time : float) -> None:
 		# 如果不是keep_temp需要循环检查临时文件是否移动完成,如果检查时间大于1小时则打印日志并强制关闭
 		now_time = time()
 		while not is_temp_moved(facefusion.globals.target_path, normed_output_path):
-			logger.info("临时文件移动中...")
+			logger.info("临时文件移动中...", __name__.upper())
 			sleep(20)
 			if (now_time - start_time) > 3000:
 				logger.error("临时文件移动超时,强制关机", __name__.upper())
@@ -448,7 +448,8 @@ def process_video(start_time : float) -> None:
 		clear_temp(facefusion.globals.target_path)
 		# windows
 		if platform.system() == 'Windows':
-			os.system('shutdown -s -t 120')
+			# 这里放开10分钟看看是不是没有移动完成
+			os.system('shutdown -s -t 600')
 			return
 		# linux
 		if platform.system() == 'Linux':
