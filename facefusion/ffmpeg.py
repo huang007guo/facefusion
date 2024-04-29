@@ -16,6 +16,9 @@ def run_ffmpeg(args : List[str], must_done : bool = False) -> bool:
 	if facefusion.globals.hwaccel_cuda:
 		commands.extend(['-hwaccel', 'cuda'])
 	commands.extend(args)
+	# 如果必须完成的,使用同步运行模式
+	if must_done:
+		return os.system(' '.join(commands)) == 0
 	process = subprocess.Popen(commands, stderr = subprocess.PIPE, stdout = subprocess.PIPE)
 
 	while process_manager.is_processing() or must_done:
