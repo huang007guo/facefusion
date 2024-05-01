@@ -20,6 +20,7 @@ def render() -> None:
 
 	is_target_image = is_image(facefusion.globals.target_path)
 	is_target_video = is_video(facefusion.globals.target_path)
+	# 目标文件web上传控件
 	TARGET_FILE = gradio.File(
 		label = wording.get('uis.target_file'),
 		file_count = 'single',

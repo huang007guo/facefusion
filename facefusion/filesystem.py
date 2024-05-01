@@ -18,6 +18,10 @@ def get_temp_frame_paths(target_path: str) -> List[str]:
 	temp_frames_pattern = get_temp_frames_pattern(target_path, '*')
 	return sorted(glob.glob(temp_frames_pattern))
 
+# 检查是否为临时文件
+def is_temp_file(file_path: str) -> bool:
+	# 检查是否在tempfile.gettempdir()下
+	return file_path.startswith(tempfile.gettempdir())
 
 def get_temp_frames_pattern(target_path: str, temp_frame_prefix: str) -> str:
 	temp_directory_path = get_temp_directory_path(target_path)
@@ -53,7 +57,7 @@ def get_temp_directory_path(target_path: str) -> str:
 	target_name = get_str_md5(target_name)
 	temp_path = os.path.join(facefusion.globals.temp_dir if facefusion.globals.temp_dir else TEMP_DIRECTORY_PATH,
 							 target_name)
-	logger.info("temp_path:", temp_path)
+	logger.info("temp_path:"+temp_path, __name__.upper())
 	return temp_path
 
 

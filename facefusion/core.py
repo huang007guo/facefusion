@@ -1,6 +1,8 @@
 import os
 import platform
 
+from facefusion.uis.components.target import TARGET_FILE
+
 os.environ['OMP_NUM_THREADS'] = '1'
 
 import signal
@@ -26,7 +28,7 @@ from facefusion.memory import limit_system_memory
 from facefusion.statistics import conditional_log_statistics
 from facefusion.download import conditional_download
 from facefusion.filesystem import list_directory, get_temp_frame_paths, create_temp, move_temp, clear_temp, is_image, \
-	is_video, filter_audio_paths, resolve_relative_path, is_temp_moved
+	is_video, filter_audio_paths, resolve_relative_path, is_temp_moved, is_temp_file
 from facefusion.ffmpeg import extract_frames, merge_video, copy_image, finalize_image, restore_audio, replace_audio
 from facefusion.vision import read_image, read_static_images, detect_image_resolution, restrict_video_fps, create_image_resolutions, get_video_frame, detect_video_resolution, detect_video_fps, restrict_video_resolution, restrict_image_resolution, create_video_resolutions, pack_resolution, unpack_resolution
 
@@ -354,8 +356,32 @@ def process_image(start_time : float) -> None:
 		logger.error(wording.get('processing_image_failed'), __name__.upper())
 	process_manager.end()
 
+
+
 # 视频处理核心流程
 def process_video(start_time : float) -> None:
+	# 标记转换完成后是否需要清理target_path
+	clear_target_path_file_flag = False
+	# 处理视频时如果是Windows临时目录,先移动到存放视频的临时目录,然后再处理,避免浏览器关闭后清空的情况
+	# 这里考虑是否真的有必要,也许是目标文件带有特殊字符导致报错转换失败的问题
+	if platform.system() == 'Windows':
+		logger.info(facefusion.globals.target_path, __name__.upper())
+		# 检查是否为临时目录文件
+		if is_temp_file(facefusion.globals.target_path):
+			# 移动当前文件(facefusion.globals.target_path)的顶级目录下的tmp文件下,
+			# 如:"C:\Users\ADMINI~1.PC-\AppData\Local\Temp\gradio\21fbb2f7a1ee6427297bc1107ea883b497bae513\Until" 则移动到C:\tmp下
+			move_path = facefusion.globals.target_path.split('\\')
+			move_path = move_path[0]+"\\"+"tmp"
+			# 添加facefusion.globals.target_path中的文件名
+			move_path = move_path + "\\" + (facefusion.globals.target_path.split('\\')[-1])
+			logger.info("move_path:"+move_path, __name__.upper())
+			shutil.move(facefusion.globals.target_path, move_path)
+			facefusion.globals.target_path = move_path
+			if TARGET_FILE is not None:
+				# move_path对应的文件类型
+				TARGET_FILE.value = open(move_path, 'rb')
+			clear_target_path_file_flag = True
+
 	normed_output_path = normalize_output_path(facefusion.globals.target_path, facefusion.globals.output_path)
 	if analyse_video(facefusion.globals.target_path, facefusion.globals.trim_frame_start, facefusion.globals.trim_frame_end):
 		return
@@ -446,6 +472,8 @@ def process_video(start_time : float) -> None:
 		# clear temp
 		logger.debug(wording.get('clearing_temp'), __name__.upper())
 		clear_temp(facefusion.globals.target_path)
+		if clear_target_path_file_flag:
+			os.remove(facefusion.globals.target_path)
 		# windows
 		if platform.system() == 'Windows':
 			# 这里放开10分钟看看是不是没有移动完成
@@ -459,6 +487,8 @@ def process_video(start_time : float) -> None:
 		# clear temp
 		logger.debug(wording.get('clearing_temp'), __name__.upper())
 		clear_temp(facefusion.globals.target_path)
+		if clear_target_path_file_flag:
+			os.remove(facefusion.globals.target_path)
 
 def is_process_stopping() -> bool:
 	if process_manager.is_stopping():
