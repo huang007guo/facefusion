@@ -6,7 +6,8 @@ import filetype
 import facefusion.globals
 from facefusion import logger, process_manager
 from facefusion.typing import OutputVideoPreset, Fps, AudioBuffer
-from facefusion.filesystem import get_temp_frames_pattern, get_temp_output_video_path
+from facefusion.filesystem import get_temp_frames_pattern, get_temp_output_video_path, get_temp_directory_path, \
+	get_out_temp_frames_pattern
 from facefusion.vision import restrict_video_fps
 
 
@@ -55,6 +56,13 @@ def extract_frames(target_path : str, temp_video_resolution : str, temp_video_fp
 	trim_frame_start = facefusion.globals.trim_frame_start
 	trim_frame_end = facefusion.globals.trim_frame_end
 	temp_frames_pattern = get_temp_frames_pattern(target_path, '%04d')
+	# 如果是跳过的情况判断,是否有目录并且有图片
+	if facefusion.globals.skip_extract_frames:
+		temp_directory_path = get_temp_directory_path(target_path)
+		# if os.path.isdir(temp_directory_path) and len(os.listdir(temp_directory_path)) > 0:
+		if os.path.isdir(temp_directory_path):
+			return True
+
 	commands = [ '-i', target_path, '-s', str(temp_video_resolution), '-q:v', '0' ]
 
 	if trim_frame_start is not None and trim_frame_end is not None:
@@ -72,7 +80,7 @@ def extract_frames(target_path : str, temp_video_resolution : str, temp_video_fp
 def merge_video(target_path : str, output_video_resolution : str, output_video_fps : Fps) -> bool:
 	temp_video_fps = restrict_video_fps(target_path, output_video_fps)
 	temp_output_video_path = get_temp_output_video_path(target_path)
-	temp_frames_pattern = get_temp_frames_pattern(target_path, '%04d')
+	temp_frames_pattern = get_temp_frames_pattern(target_path, '%04d') if not facefusion.globals.out_new_dir else get_out_temp_frames_pattern(target_path, '%04d')
 	commands = [ '-r', str(temp_video_fps), '-i', temp_frames_pattern, '-s', str(output_video_resolution), '-c:v', facefusion.globals.output_video_encoder ]
 
 	if facefusion.globals.output_video_encoder in [ 'libx264', 'libx265' ]:

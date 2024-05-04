@@ -51,6 +51,10 @@ def cli() -> None:
 	group_misc.add_argument('--skip-download', help = wording.get('help.skip_download'), action = 'store_true', default = config.get_bool_value('misc.skip_download'))
 	# 处理完成后自动关机
 	group_misc.add_argument('--shutdown', help = wording.get('help.shutdown'), action = 'store_true', default = config.get_bool_value('misc.shutdown'))
+	# 如果存在临时目录是否跳过导出视频图片帧(extract_frames)
+	group_misc.add_argument('--skip-extract-frames', help = wording.get('help.skip_extract_frames'), action = 'store_true', default = config.get_bool_value('misc.skip_extract_frames'))
+	# 换脸的图片帧是否使用新目录保存,方便重复换脸使用
+	group_misc.add_argument('--out-new-dir', help = wording.get('help.out_new_dir'), action = 'store_true', default = config.get_bool_value('misc.out_new_dir'))
 	#开启 -hwaccel cuda
 	group_misc.add_argument('--hwaccel-cuda', help = wording.get('help.hwaccel_cuda'), action = 'store_true', default = config.get_bool_value('misc.hwaccel_cuda'))
 	group_misc.add_argument('--headless', help = wording.get('help.headless'), action = 'store_true', default = config.get_bool_value('misc.headless'))
@@ -155,6 +159,8 @@ def apply_args(program : ArgumentParser) -> None:
 	facefusion.globals.skip_download = args.skip_download
 	facefusion.globals.shutdown = args.shutdown
 	facefusion.globals.hwaccel_cuda = args.hwaccel_cuda
+	facefusion.globals.out_new_dir = args.out_new_dir
+	facefusion.globals.skip_extract_frames = args.skip_extract_frames
 	facefusion.globals.headless = args.headless
 	facefusion.globals.log_level = args.log_level
 	# execution
@@ -408,7 +414,10 @@ def process_video(start_time : float) -> None:
 	if temp_frame_paths:
 		for frame_processor_module in get_frame_processors_modules(facefusion.globals.frame_processors):
 			logger.info(wording.get('processing'), frame_processor_module.NAME)
-			frame_processor_module.process_video(facefusion.globals.source_paths, temp_frame_paths)
+			# 模型处理视频帧
+			new_temp_frame_paths = frame_processor_module.process_video(facefusion.globals.source_paths, temp_frame_paths)
+			if new_temp_frame_paths:
+				temp_frame_paths = new_temp_frame_paths
 			frame_processor_module.post_process()
 		if is_process_stopping():
 			return

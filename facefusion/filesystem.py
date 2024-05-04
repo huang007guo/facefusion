@@ -18,13 +18,30 @@ def get_temp_frame_paths(target_path: str) -> List[str]:
 	temp_frames_pattern = get_temp_frames_pattern(target_path, '*')
 	return sorted(glob.glob(temp_frames_pattern))
 
+
+def get_out_temp_frame_paths(target_path: str) -> List[str]:
+	temp_frames_pattern = get_out_temp_frames_pattern(target_path, '*')
+	return sorted(glob.glob(temp_frames_pattern))
+
+
 # 检查是否为临时文件
 def is_temp_file(file_path: str) -> bool:
 	# 检查是否在tempfile.gettempdir()下
 	return file_path.startswith(tempfile.gettempdir())
 
+
 def get_temp_frames_pattern(target_path: str, temp_frame_prefix: str) -> str:
 	temp_directory_path = get_temp_directory_path(target_path)
+	return os.path.join(temp_directory_path, temp_frame_prefix + '.' + facefusion.globals.temp_frame_format)
+
+
+# 获取新的输出临时目录
+def get_out_temp_directory_path(target_path: str) -> str:
+	return os.path.join(get_temp_directory_path(target_path), 'out')
+
+
+def get_out_temp_frames_pattern(target_path: str, temp_frame_prefix: str) -> str:
+	temp_directory_path = get_out_temp_directory_path(target_path)
 	return os.path.join(temp_directory_path, temp_frame_prefix + '.' + facefusion.globals.temp_frame_format)
 
 
@@ -57,7 +74,7 @@ def get_temp_directory_path(target_path: str) -> str:
 	target_name = get_str_md5(target_name)
 	temp_path = os.path.join(facefusion.globals.temp_dir if facefusion.globals.temp_dir else TEMP_DIRECTORY_PATH,
 							 target_name)
-	logger.info("temp_path:"+temp_path, __name__.upper())
+	logger.info("temp_path:" + temp_path, __name__.upper())
 	return temp_path
 
 
@@ -83,7 +100,8 @@ def move_temp(target_path: str, output_path: str) -> None:
 # 检查临时文件是否移动完成, output_path不是文件或output_path是文件大于等于temp_output_video_path的文件大小
 def is_temp_moved(target_path: str, output_path: str) -> bool:
 	temp_output_video_path = get_temp_output_video_path(target_path)
-	return not is_file(temp_output_video_path) or (is_file(output_path) and os.path.getsize(output_path) >= os.path.getsize(temp_output_video_path))
+	return not is_file(temp_output_video_path) or (
+			is_file(output_path) and os.path.getsize(output_path) >= os.path.getsize(temp_output_video_path))
 
 
 def clear_temp(target_path: str) -> None:

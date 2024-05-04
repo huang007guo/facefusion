@@ -1,3 +1,4 @@
+import os.path
 from typing import Any, List, Literal, Optional
 from argparse import ArgumentParser
 from time import sleep
@@ -19,7 +20,8 @@ from facefusion.content_analyser import clear_content_analyser
 from facefusion.normalizer import normalize_output_path
 from facefusion.thread_helper import thread_lock, conditional_thread_semaphore
 from facefusion.typing import Face, Embedding, VisionFrame, UpdateProgress, ProcessMode, ModelSet, OptionsWithModel, QueuePayload
-from facefusion.filesystem import is_file, is_image, has_image, is_video, filter_image_paths, resolve_relative_path
+from facefusion.filesystem import is_file, is_image, has_image, is_video, filter_image_paths, resolve_relative_path, \
+	get_temp_directory_path, get_out_temp_frames_pattern, get_out_temp_frame_paths, get_out_temp_directory_path
 from facefusion.download import conditional_download, is_download_done
 from facefusion.vision import read_image, read_static_image, read_static_images, write_image
 from facefusion.processors.frame.typings import FaceSwapperInputs
@@ -348,7 +350,13 @@ def process_frames(source_paths : List[str], queue_payloads : List[QueuePayload]
 			'source_face': source_face,
 			'target_vision_frame': target_vision_frame
 		})
-		write_image(target_vision_path, output_vision_frame)
+		write_vision_path = target_vision_path
+		# 如果是写入新文件,需要替换目录
+		if facefusion.globals.out_new_dir:
+			write_vision_path = target_vision_path.replace(get_temp_directory_path(facefusion.globals.target_path), get_out_temp_directory_path(facefusion.globals.target_path))
+
+		# 写入换脸后的图片帧
+		write_image(write_vision_path, output_vision_frame)
 		update_progress(1)
 
 
@@ -366,5 +374,9 @@ def process_image(source_paths : List[str], target_path : str, output_path : str
 	write_image(output_path, output_vision_frame)
 
 
-def process_video(source_paths : List[str], temp_frame_paths : List[str]) -> None:
+def process_video(source_paths : List[str], temp_frame_paths : List[str]) -> list[str]:
 	frame_processors.multi_process_frames(source_paths, temp_frame_paths, process_frames)
+	if facefusion.globals.out_new_dir:
+		return get_out_temp_frame_paths(facefusion.globals.target_path)
+
+

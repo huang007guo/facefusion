@@ -20,6 +20,10 @@ def render() -> None:
 		value.append('skip-download')
 	if facefusion.globals.hwaccel_cuda:
 		value.append('hwaccel-cuda')
+	if facefusion.globals.skip_extract_frames:
+		value.append('skip-extract-frames')
+	if facefusion.globals.out_new_dir:
+		value.append('out-new-dir')
 	if facefusion.globals.shutdown:
 		value.append('shutdown')
 	COMMON_OPTIONS_CHECKBOX_GROUP = gradio.Checkboxgroup(
@@ -39,3 +43,5 @@ def update(common_options : List[str]) -> None:
 	facefusion.globals.skip_download = 'skip-download' in common_options
 	facefusion.globals.shutdown = 'shutdown' in common_options
 	facefusion.globals.hwaccel_cuda = 'hwaccel-cuda' in common_options
+	facefusion.globals.out_new_dir = 'out-new-dir' in common_options
+	facefusion.globals.skip_extract_frames = 'skip-extract-frames' in common_options
