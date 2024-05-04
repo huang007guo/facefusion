@@ -43,6 +43,8 @@ misc:
   --log-level {error,warn,info,debug}                                                                                                                   adjust the message severity displayed in the terminal
   --shutdown
   --hwaccel-cuda
+  --skip-extract-frames
+  --out-new-dir
 
 execution:
   --execution-providers EXECUTION_PROVIDERS [EXECUTION_PROVIDERS ...]                                                                                   accelerate the model inference using different providers (choices: cpu, ...)

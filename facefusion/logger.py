@@ -1,3 +1,4 @@
+import pathlib
 from typing import Dict
 from logging import basicConfig, getLogger, Logger, DEBUG, INFO, WARNING, ERROR
 
@@ -5,6 +6,8 @@ from facefusion.typing import LogLevel
 
 
 def init(log_level : LogLevel) -> None:
+	# 创建目录/tmp/facefusion.log
+	pathlib.Path('/tmp').mkdir(exist_ok = True, parents = True)
 	# 日志文件位置: /tmp/facefusion.log
 	basicConfig(format = None, filename = '/tmp/facefusion.log')
 	get_package_logger().setLevel(get_log_levels()[log_level])

@@ -62,7 +62,11 @@ WORDING : Dict[str, Any] =\
 		'force_download': 'force automate downloads and exit',
 		'skip_download': 'omit automate downloads and remote lookups',
 		'shutdown': 'shutdown the computer after processing',
-		'hwaccel-cuda': 'use the CUDA hardware acceleration for the model inference',
+		# 如果存在临时目录是否跳过导出视频图片帧(extract_frames)
+		'skip_extract_frames': 'skip exporting the video frames',
+		# 换脸的图片帧是否使用新目录保存,方便重复换脸使用
+		'out_new_dir': 'use a new directory for the exported video frames',
+		'hwaccel_cuda': 'use the CUDA hardware acceleration for the model inference',
 		'headless': 'run the program without a user interface',
 		'log_level': 'adjust the message severity displayed in the terminal',
 		# execution
