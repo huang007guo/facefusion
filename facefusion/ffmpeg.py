@@ -7,7 +7,7 @@ import facefusion.globals
 from facefusion import logger, process_manager
 from facefusion.typing import OutputVideoPreset, Fps, AudioBuffer
 from facefusion.filesystem import get_temp_frames_pattern, get_temp_output_video_path, get_temp_directory_path, \
-	get_out_temp_frames_pattern
+	get_out_temp_frames_pattern, has_files
 from facefusion.vision import restrict_video_fps
 
 
@@ -59,8 +59,7 @@ def extract_frames(target_path : str, temp_video_resolution : str, temp_video_fp
 	# 如果是跳过的情况判断,是否有目录并且有图片
 	if facefusion.globals.skip_extract_frames:
 		temp_directory_path = get_temp_directory_path(target_path)
-		# if os.path.isdir(temp_directory_path) and len(os.listdir(temp_directory_path)) > 0:
-		if os.path.isdir(temp_directory_path):
+		if os.path.isdir(temp_directory_path) and has_files(temp_directory_path):
 			return True
 
 	commands = [ '-i', target_path, '-s', str(temp_video_resolution), '-q:v', '0' ]

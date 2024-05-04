@@ -24,7 +24,9 @@ MODELS : ModelSet =\
 		'path': resolve_relative_path('../.assets/models/open_nsfw.onnx')
 	}
 }
+# 不健康(nsfw)的阈值
 PROBABILITY_LIMIT = 1111.11
+# 不健康(nsfw)的比率
 RATE_LIMIT = 10
 STREAM_COUNTER = 0
 
@@ -68,15 +70,17 @@ def analyse_stream(vision_frame : VisionFrame, video_fps : Fps) -> bool:
 	return False
 
 
+# 检查非法帧(不健康nsfw),先注释掉避免性能消耗
 def analyse_frame(vision_frame : VisionFrame) -> bool:
-	content_analyser = get_content_analyser()
-	vision_frame = prepare_frame(vision_frame)
-	with conditional_thread_semaphore(facefusion.globals.execution_providers):
-		probability = content_analyser.run(None,
-		{
-			content_analyser.get_inputs()[0].name: vision_frame
-		})[0][0][1]
-	return probability > PROBABILITY_LIMIT
+	# content_analyser = get_content_analyser()
+	# vision_frame = prepare_frame(vision_frame)
+	# with conditional_thread_semaphore(facefusion.globals.execution_providers):
+	# 	probability = content_analyser.run(None,
+	# 	{
+	# 		content_analyser.get_inputs()[0].name: vision_frame
+	# 	})[0][0][1]
+	# return probability > PROBABILITY_LIMIT
+	return False
 
 
 def prepare_frame(vision_frame : VisionFrame) -> VisionFrame:
