@@ -1,5 +1,12 @@
 import os
 import platform
+# 解决报错(可能只有在idea中调试才会发生):
+# File "D:\ProgramData\Anaconda3\envs\facefusion\lib\site-packages\matplotlib\pyplot.py", line 343, in switch_backend
+#     canvas_class = module.FigureCanvas
+# AttributeError: module 'backend_interagg' has no attribute 'FigureCanvas'
+import matplotlib
+matplotlib.use('Agg')  # 在导入pyplot之前指定
+import matplotlib.pyplot as plt
 
 from facefusion.uis.components.target import TARGET_FILE
 

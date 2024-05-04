@@ -94,6 +94,10 @@ def create_temp(target_path: str) -> None:
 	temp_directory_path = get_temp_directory_path(target_path)
 	logger.info(f'creating temp directory: {temp_directory_path}', __name__.upper())
 	Path(temp_directory_path).mkdir(parents=True, exist_ok=True)
+	if facefusion.globals.out_new_dir:
+		out_temp_directory_path = get_out_temp_directory_path(target_path)
+		logger.info(f'creating out temp directory: {out_temp_directory_path}', __name__.upper())
+		Path(out_temp_directory_path).mkdir(parents=True, exist_ok=True)
 
 
 # 移动临时文件

@@ -124,7 +124,7 @@ def restore_audio(target_path : str, output_path : str, output_video_fps : Fps) 
 	trim_frame_start = facefusion.globals.trim_frame_start
 	trim_frame_end = facefusion.globals.trim_frame_end
 	temp_output_video_path = get_temp_output_video_path(target_path)
-	commands = [ '-i', "'"+temp_output_video_path+"'"]
+	commands = [ '-i', '"'+temp_output_video_path+'"']
 
 	if trim_frame_start is not None:
 		start_time = trim_frame_start / output_video_fps
@@ -132,13 +132,13 @@ def restore_audio(target_path : str, output_path : str, output_video_fps : Fps) 
 	if trim_frame_end is not None:
 		end_time = trim_frame_end / output_video_fps
 		commands.extend([ '-to', str(end_time) ])
-	commands.extend([ '-i', "'"+target_path+"'", '-c', 'copy', '-map', '0:v:0', '-map', '1:a:0', '-shortest', '-y', "'"+output_path+"'" ])
+	commands.extend([ '-i', '"'+target_path+'"', '-c', 'copy', '-map', '0:v:0', '-map', '1:a:0', '-shortest', '-y', '"'+output_path+'"' ])
 	return run_ffmpeg(commands, True)
 
 
 def replace_audio(target_path : str, audio_path : str, output_path : str) -> bool:
 	temp_output_path = get_temp_output_video_path(target_path)
-	commands = [ '-i', "'"+temp_output_path+"'", '-i', audio_path, '-af', 'apad', '-shortest', '-y', "'"+output_path+"'" ]
+	commands = [ '-i', '"'+temp_output_path+'"', '-i', audio_path, '-af', 'apad', '-shortest', '-y', '"'+output_path+'"' ]
 	return run_ffmpeg(commands, True)
 
 

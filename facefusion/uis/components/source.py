@@ -12,7 +12,7 @@ SOURCE_FILE : Optional[gradio.File] = None
 SOURCE_AUDIO : Optional[gradio.Audio] = None
 SOURCE_IMAGE : Optional[gradio.Image] = None
 
-
+# 渲染ui
 def render() -> None:
 	global SOURCE_FILE
 	global SOURCE_AUDIO

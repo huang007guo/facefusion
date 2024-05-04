@@ -71,6 +71,7 @@ def register_ui_component(component_name : ComponentName, component: Component) 
 	UI_COMPONENTS[component_name] = component
 
 
+# ui载入入口
 def launch() -> None:
 	ui_layouts_total = len(facefusion.globals.ui_layouts)
 	with gradio.Blocks(theme = get_theme(), css = get_css(), title = metadata.get('name') + ' ' + metadata.get('version')) as ui:
@@ -82,8 +83,10 @@ def launch() -> None:
 						ui_layout_module.render()
 						ui_layout_module.listen()
 				else:
+					# ui载入入口
 					ui_layout_module.render()
 					ui_layout_module.listen()
+				ui_layout_module.pre_check()
 
 	for ui_layout in facefusion.globals.ui_layouts:
 		ui_layout_module = load_ui_layout_module(ui_layout)
