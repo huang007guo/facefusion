@@ -493,7 +493,7 @@ def process_video(start_time : float) -> None:
 		# windows
 		if platform.system() == 'Windows':
 			# 这里放开10分钟看看是不是没有移动完成
-			os.system('shutdown -s -t 600')
+			os.system('shutdown -s -t 120')
 			return
 		# linux
 		if platform.system() == 'Linux':
