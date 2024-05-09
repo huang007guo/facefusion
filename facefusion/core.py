@@ -488,7 +488,7 @@ def process_video(start_time : float) -> None:
 		# clear temp
 		logger.debug(wording.get('clearing_temp'), __name__.upper())
 		clear_temp(facefusion.globals.target_path)
-		if clear_target_path_file_flag:
+		if clear_target_path_file_flag and not facefusion.globals.keep_temp:
 			os.remove(facefusion.globals.target_path)
 		# windows
 		if platform.system() == 'Windows':
@@ -503,7 +503,7 @@ def process_video(start_time : float) -> None:
 		# clear temp
 		logger.debug(wording.get('clearing_temp'), __name__.upper())
 		clear_temp(facefusion.globals.target_path)
-		if clear_target_path_file_flag:
+		if clear_target_path_file_flag and not facefusion.globals.keep_temp:
 			os.remove(facefusion.globals.target_path)
 
 def is_process_stopping() -> bool:
