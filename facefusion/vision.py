@@ -38,7 +38,11 @@ def read_image(image_path : str) -> Optional[VisionFrame]:
 
 def write_image(image_path : str, vision_frame : VisionFrame) -> bool:
 	if image_path:
-		return cv2.imwrite(image_path, vision_frame)
+		path_split = os.path.splitext(image_path)
+		# 后缀
+		cv2.imencode(path_split[1], vision_frame)[1].tofile(image_path)
+		return True
+		# return cv2.imwrite(image_path, vision_frame)
 	return False
 
 
