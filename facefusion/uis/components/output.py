@@ -72,6 +72,9 @@ def process() -> Tuple[gradio.Image, gradio.Video, gradio.Button, gradio.Button]
 	# facefusion.globals.target_dir
 	# 如果发现有target_dir,递归遍历target_dir目录下的所有图片(包括子目录)把路径写入到target_path变量中一个一个处理
 	if facefusion.globals.target_dir:
+		# 清空目标分辨率,避免污染
+		facefusion.globals.output_video_resolution = None
+		facefusion.globals.output_image_resolution = None
 		find_images_or_videos(facefusion.globals.target_dir, once_conditional_process)
 	else:
 		conditional_process()
