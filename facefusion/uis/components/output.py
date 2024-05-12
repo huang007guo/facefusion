@@ -4,7 +4,7 @@ import gradio
 
 import facefusion.globals
 from facefusion import process_manager, wording
-from facefusion.core import conditional_process, once_conditional_process
+from facefusion.core import conditional_process, once_conditional_process, auto_shutdown_pc
 from facefusion.memory import limit_system_memory
 from facefusion.normalizer import normalize_output_path
 from facefusion.uis.core import get_ui_component
@@ -76,8 +76,10 @@ def process() -> Tuple[gradio.Image, gradio.Video, gradio.Button, gradio.Button]
 		facefusion.globals.output_video_resolution = None
 		facefusion.globals.output_image_resolution = None
 		find_images_or_videos(facefusion.globals.target_dir, once_conditional_process)
+		auto_shutdown_pc()
 	else:
 		conditional_process()
+		auto_shutdown_pc()
 	if is_image(normed_output_path):
 		return gradio.Image(value = normed_output_path, visible = True), gradio.Video(value = None, visible = False), gradio.Button(visible = True), gradio.Button(visible = False)
 	if is_video(normed_output_path):

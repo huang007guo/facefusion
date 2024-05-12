@@ -354,8 +354,10 @@ def run(program: ArgumentParser) -> None:
 		# 如果发现有target_dir,递归遍历target_dir目录下的所有图片(包括子目录)把路径写入到target_path变量中一个一个处理
 		if facefusion.globals.target_dir:
 			find_images_or_videos(facefusion.globals.target_dir, once_conditional_process)
+			auto_shutdown_pc()
 		else:
 			conditional_process()
+			auto_shutdown_pc()
 	else:
 		import facefusion.uis.core as ui
 
@@ -427,6 +429,31 @@ def conditional_process() -> None:
 	facefusion.globals.output_video_resolution = old_output_video_resolution
 	facefusion.globals.output_image_resolution = old_output_image_resolution
 
+
+def auto_shutdown_pc():
+	# 这里可能没有移动完成？
+	if facefusion.globals.shutdown:
+		# # 如果不是keep_temp需要循环检查临时文件是否移动完成,如果检查时间大于1小时则打印日志并强制关闭
+		# now_time = time()
+		# while not is_temp_moved(facefusion.globals.target_path, normed_output_path):
+		# 	logger.info("临时文件移动中...", __name__.upper())
+		# 	sleep(20)
+		# 	if (now_time - start_time) > 3000:
+		# 		logger.error("临时文件移动超时,强制关机", __name__.upper())
+		# 		return
+		# 	if not facefusion.globals.shutdown:
+		# 		logger.info("取消关机", __name__.upper())
+		# 		return
+		# clear temp
+		# windows
+		if platform.system() == 'Windows':
+			# 这里放开10分钟看看是不是没有移动完成
+			os.system('shutdown -s -t 120')
+			return
+		# linux
+		if platform.system() == 'Linux':
+			os.system('shutdown -h now')
+			return
 
 def conditional_append_reference_faces() -> None:
 	if 'reference' in facefusion.globals.face_selector_mode and not get_reference_faces():
@@ -618,39 +645,39 @@ def process_video(start_time: float) -> None:
 		logger.error(wording.get('processing_video_failed'), __name__.upper())
 	# 结束执行
 	process_manager.end()
-	# todo hank 这里可能没有移动完成
-	if facefusion.globals.shutdown:
-		# 如果不是keep_temp需要循环检查临时文件是否移动完成,如果检查时间大于1小时则打印日志并强制关闭
-		now_time = time()
-		while not is_temp_moved(facefusion.globals.target_path, normed_output_path):
-			logger.info("临时文件移动中...", __name__.upper())
-			sleep(20)
-			if (now_time - start_time) > 3000:
-				logger.error("临时文件移动超时,强制关机", __name__.upper())
-				return
-			if not facefusion.globals.shutdown:
-				logger.info("取消关机", __name__.upper())
-				return
-		# clear temp
-		logger.debug(wording.get('clearing_temp'), __name__.upper())
-		clear_temp(facefusion.globals.target_path)
-		if clear_target_path_file_flag and not facefusion.globals.keep_temp:
-			os.remove(facefusion.globals.target_path)
-		# windows
-		if platform.system() == 'Windows':
-			# 这里放开10分钟看看是不是没有移动完成
-			os.system('shutdown -s -t 120')
-			return
-		# linux
-		if platform.system() == 'Linux':
-			os.system('shutdown -h now')
-			return
-	else:
-		# clear temp
-		logger.debug(wording.get('clearing_temp'), __name__.upper())
-		clear_temp(facefusion.globals.target_path)
-		if clear_target_path_file_flag and not facefusion.globals.keep_temp:
-			os.remove(facefusion.globals.target_path)
+	# 这里可能没有移动完成
+	# if facefusion.globals.shutdown:
+	# 	# 如果不是keep_temp需要循环检查临时文件是否移动完成,如果检查时间大于1小时则打印日志并强制关闭
+	# 	now_time = time()
+	# 	while not is_temp_moved(facefusion.globals.target_path, normed_output_path):
+	# 		logger.info("临时文件移动中...", __name__.upper())
+	# 		sleep(20)
+	# 		if (now_time - start_time) > 3000:
+	# 			logger.error("临时文件移动超时,强制关机", __name__.upper())
+	# 			return
+	# 		if not facefusion.globals.shutdown:
+	# 			logger.info("取消关机", __name__.upper())
+	# 			return
+	# 	# clear temp
+	# 	logger.debug(wording.get('clearing_temp'), __name__.upper())
+	# 	clear_temp(facefusion.globals.target_path)
+	# 	if clear_target_path_file_flag and not facefusion.globals.keep_temp:
+	# 		os.remove(facefusion.globals.target_path)
+	# 	# windows
+	# 	if platform.system() == 'Windows':
+	# 		# 这里放开10分钟看看是不是没有移动完成
+	# 		os.system('shutdown -s -t 120')
+	# 		return
+	# 	# linux
+	# 	if platform.system() == 'Linux':
+	# 		os.system('shutdown -h now')
+	# 		return
+	# else:
+	# clear temp
+	logger.debug(wording.get('clearing_temp'), __name__.upper())
+	clear_temp(facefusion.globals.target_path)
+	if clear_target_path_file_flag and not facefusion.globals.keep_temp:
+		os.remove(facefusion.globals.target_path)
 
 
 def is_process_stopping() -> bool:
