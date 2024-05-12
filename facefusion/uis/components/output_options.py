@@ -10,6 +10,7 @@ from facefusion.uis.core import get_ui_components, register_ui_component
 from facefusion.vision import detect_image_resolution, create_image_resolutions, detect_video_fps, detect_video_resolution, create_video_resolutions, pack_resolution
 
 OUTPUT_PATH_TEXTBOX : Optional[gradio.Textbox] = None
+TARGET_DIR_TEXTBOX : Optional[gradio.Textbox] = None
 OUTPUT_IMAGE_QUALITY_SLIDER : Optional[gradio.Slider] = None
 OUTPUT_IMAGE_RESOLUTION_DROPDOWN : Optional[gradio.Dropdown] = None
 OUTPUT_VIDEO_ENCODER_DROPDOWN : Optional[gradio.Dropdown] = None
@@ -21,6 +22,7 @@ OUTPUT_VIDEO_FPS_SLIDER : Optional[gradio.Slider] = None
 
 def render() -> None:
 	global OUTPUT_PATH_TEXTBOX
+	global TARGET_DIR_TEXTBOX
 	global OUTPUT_IMAGE_QUALITY_SLIDER
 	global OUTPUT_IMAGE_RESOLUTION_DROPDOWN
 	global OUTPUT_VIDEO_ENCODER_DROPDOWN
@@ -38,9 +40,16 @@ def render() -> None:
 		output_video_resolution = detect_video_resolution(facefusion.globals.target_path)
 		output_video_resolutions = create_video_resolutions(output_video_resolution)
 	facefusion.globals.output_path = facefusion.globals.output_path or '.'
+	# 目标图片的目录路径,如果指定将会处理目录下(包括子目录)所有的图片 target_dir
+	facefusion.globals.target_dir = facefusion.globals.target_dir or ''
 	OUTPUT_PATH_TEXTBOX = gradio.Textbox(
 		label = wording.get('uis.output_path_textbox'),
 		value = facefusion.globals.output_path,
+		max_lines = 1
+	)
+	TARGET_DIR_TEXTBOX = gradio.Textbox(
+		label = wording.get('uis.target_dir_textbox'),
+		value = facefusion.globals.target_dir,
 		max_lines = 1
 	)
 	OUTPUT_IMAGE_QUALITY_SLIDER = gradio.Slider(
@@ -92,11 +101,13 @@ def render() -> None:
 		visible = is_video(facefusion.globals.target_path)
 	)
 	register_ui_component('output_path_textbox', OUTPUT_PATH_TEXTBOX)
+	register_ui_component('target_dir_textbox', TARGET_DIR_TEXTBOX)
 	register_ui_component('output_video_fps_slider', OUTPUT_VIDEO_FPS_SLIDER)
 
 
 def listen() -> None:
 	OUTPUT_PATH_TEXTBOX.change(update_output_path, inputs = OUTPUT_PATH_TEXTBOX)
+	TARGET_DIR_TEXTBOX.change(update_target_dir, inputs = TARGET_DIR_TEXTBOX)
 	OUTPUT_IMAGE_QUALITY_SLIDER.release(update_output_image_quality, inputs = OUTPUT_IMAGE_QUALITY_SLIDER)
 	OUTPUT_IMAGE_RESOLUTION_DROPDOWN.change(update_output_image_resolution, inputs = OUTPUT_IMAGE_RESOLUTION_DROPDOWN)
 	OUTPUT_VIDEO_ENCODER_DROPDOWN.change(update_output_video_encoder, inputs = OUTPUT_VIDEO_ENCODER_DROPDOWN)
@@ -131,6 +142,10 @@ def remote_update() -> Tuple[gradio.Slider, gradio.Dropdown, gradio.Dropdown, gr
 
 def update_output_path(output_path : str) -> None:
 	facefusion.globals.output_path = output_path
+
+
+def update_target_dir(target_dir : str) -> None:
+	facefusion.globals.target_dir = target_dir
 
 
 def update_output_image_quality(output_image_quality : int) -> None:

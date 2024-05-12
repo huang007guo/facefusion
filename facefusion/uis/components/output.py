@@ -50,6 +50,7 @@ def render() -> None:
 
 def listen() -> None:
 	output_path_textbox = get_ui_component('output_path_textbox')
+	# target_dir_textbox = get_ui_component('target_dir_textbox')
 	if output_path_textbox:
 		OUTPUT_START_BUTTON.click(start, outputs = [ OUTPUT_START_BUTTON, OUTPUT_STOP_BUTTON ])
 		OUTPUT_START_BUTTON.click(process, outputs = [ OUTPUT_IMAGE, OUTPUT_VIDEO, OUTPUT_START_BUTTON, OUTPUT_STOP_BUTTON ])

@@ -5,6 +5,8 @@ from facefusion.typing import LogLevel, VideoMemoryStrategy, FaceSelectorMode, F
 # general
 source_paths : Optional[List[str]] = None
 target_path : Optional[str] = None
+# 目标图片的目录路径,如果指定将会处理目录下(包括子目录)所有的图片
+target_dir : Optional[str] = None
 output_path : Optional[str] = None
 temp_dir : Optional[str] = None
 # misc

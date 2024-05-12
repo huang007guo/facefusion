@@ -5,6 +5,7 @@ import platform
 #     canvas_class = module.FigureCanvas
 # AttributeError: module 'backend_interagg' has no attribute 'FigureCanvas'
 import matplotlib
+
 matplotlib.use('Agg')  # 在导入pyplot之前指定
 import matplotlib.pyplot as plt
 
@@ -25,7 +26,8 @@ import facefusion.choices
 import facefusion.globals
 from facefusion.face_analyser import get_one_face, get_average_face
 from facefusion.face_store import get_reference_faces, append_reference_face
-from facefusion import face_analyser, face_masker, content_analyser, config, process_manager, metadata, logger, wording, voice_extractor
+from facefusion import face_analyser, face_masker, content_analyser, config, process_manager, metadata, logger, wording, \
+	voice_extractor
 from facefusion.content_analyser import analyse_image, analyse_video
 from facefusion.processors.frame.core import get_frame_processors_modules, load_frame_processor_module
 from facefusion.common_helper import create_metavar, get_first
@@ -35,79 +37,159 @@ from facefusion.memory import limit_system_memory
 from facefusion.statistics import conditional_log_statistics
 from facefusion.download import conditional_download
 from facefusion.filesystem import list_directory, get_temp_frame_paths, create_temp, move_temp, clear_temp, is_image, \
-	is_video, filter_audio_paths, resolve_relative_path, is_temp_moved, is_temp_file
+	is_video, filter_audio_paths, resolve_relative_path, is_temp_moved, is_temp_file, find_images
 from facefusion.ffmpeg import extract_frames, merge_video, copy_image, finalize_image, restore_audio, replace_audio
-from facefusion.vision import read_image, read_static_images, detect_image_resolution, restrict_video_fps, create_image_resolutions, get_video_frame, detect_video_resolution, detect_video_fps, restrict_video_resolution, restrict_image_resolution, create_video_resolutions, pack_resolution, unpack_resolution
+from facefusion.vision import read_image, read_static_images, detect_image_resolution, restrict_video_fps, \
+	create_image_resolutions, get_video_frame, detect_video_resolution, detect_video_fps, restrict_video_resolution, \
+	restrict_image_resolution, create_video_resolutions, pack_resolution, unpack_resolution
 
 onnxruntime.set_default_logger_severity(3)
-warnings.filterwarnings('ignore', category = UserWarning, module = 'gradio')
+warnings.filterwarnings('ignore', category=UserWarning, module='gradio')
 
 
 def cli() -> None:
 	signal.signal(signal.SIGINT, lambda signal_number, frame: destroy())
-	program = ArgumentParser(formatter_class = lambda prog: HelpFormatter(prog, max_help_position = 160), add_help = False)
+	program = ArgumentParser(formatter_class=lambda prog: HelpFormatter(prog, max_help_position=160), add_help=False)
 	# general
-	program.add_argument('-s', '--source', help = wording.get('help.source'), action = 'append', dest = 'source_paths', default = config.get_str_list('general.source_paths'))
-	program.add_argument('-t', '--target', help = wording.get('help.target'), dest = 'target_path', default = config.get_str_value('general.target_path'))
-	program.add_argument('-o', '--output', help = wording.get('help.output'), dest = 'output_path', default = config.get_str_value('general.output_path'))
-	program.add_argument('-v', '--version', version = metadata.get('name') + ' ' + metadata.get('version'), action = 'version')
-	program.add_argument('-temp-dir', '--temp-dir', help = wording.get('help.temp_dir'), dest = 'temp_dir', default = config.get_str_value('general.temp_dir'))
+	program.add_argument('-s', '--source', help=wording.get('help.source'), action='append', dest='source_paths',
+						 default=config.get_str_list('general.source_paths'))
+	program.add_argument('-t', '--target', help=wording.get('help.target'), dest='target_path',
+						 default=config.get_str_value('general.target_path'))
+	# 目标图片的目录路径,如果指定将会处理目录下(包括子目录)所有的图片 target_dir
+	program.add_argument('-td', '--target-dir', help=wording.get('help.target_dir'), dest='target_dir',
+						 default=config.get_str_value('general.target_dir'))
+	program.add_argument('-o', '--output', help=wording.get('help.output'), dest='output_path',
+						 default=config.get_str_value('general.output_path'))
+	program.add_argument('-v', '--version', version=metadata.get('name') + ' ' + metadata.get('version'),
+						 action='version')
+	program.add_argument('-temp-dir', '--temp-dir', help=wording.get('help.temp_dir'), dest='temp_dir',
+						 default=config.get_str_value('general.temp_dir'))
 	# misc
 	group_misc = program.add_argument_group('misc')
-	group_misc.add_argument('--force-download', help = wording.get('help.force_download'), action = 'store_true', default = config.get_bool_value('misc.force_download'))
-	group_misc.add_argument('--skip-download', help = wording.get('help.skip_download'), action = 'store_true', default = config.get_bool_value('misc.skip_download'))
+	group_misc.add_argument('--force-download', help=wording.get('help.force_download'), action='store_true',
+							default=config.get_bool_value('misc.force_download'))
+	group_misc.add_argument('--skip-download', help=wording.get('help.skip_download'), action='store_true',
+							default=config.get_bool_value('misc.skip_download'))
 	# 处理完成后自动关机
-	group_misc.add_argument('--shutdown', help = wording.get('help.shutdown'), action = 'store_true', default = config.get_bool_value('misc.shutdown'))
+	group_misc.add_argument('--shutdown', help=wording.get('help.shutdown'), action='store_true',
+							default=config.get_bool_value('misc.shutdown'))
 	# 如果存在临时目录是否跳过导出视频图片帧(extract_frames)
-	group_misc.add_argument('--skip-extract-frames', help = wording.get('help.skip_extract_frames'), action = 'store_true', default = config.get_bool_value('misc.skip_extract_frames'))
+	group_misc.add_argument('--skip-extract-frames', help=wording.get('help.skip_extract_frames'), action='store_true',
+							default=config.get_bool_value('misc.skip_extract_frames'))
 	# 换脸的图片帧是否使用新目录保存,方便重复换脸使用
-	group_misc.add_argument('--out-new-dir', help = wording.get('help.out_new_dir'), action = 'store_true', default = config.get_bool_value('misc.out_new_dir'))
-	#开启 -hwaccel cuda
-	group_misc.add_argument('--hwaccel-cuda', help = wording.get('help.hwaccel_cuda'), action = 'store_true', default = config.get_bool_value('misc.hwaccel_cuda'))
-	group_misc.add_argument('--headless', help = wording.get('help.headless'), action = 'store_true', default = config.get_bool_value('misc.headless'))
-	group_misc.add_argument('--log-level', help = wording.get('help.log_level'), default = config.get_str_value('misc.log_level', 'info'), choices = logger.get_log_levels())
+	group_misc.add_argument('--out-new-dir', help=wording.get('help.out_new_dir'), action='store_true',
+							default=config.get_bool_value('misc.out_new_dir'))
+	# 开启 -hwaccel cuda
+	group_misc.add_argument('--hwaccel-cuda', help=wording.get('help.hwaccel_cuda'), action='store_true',
+							default=config.get_bool_value('misc.hwaccel_cuda'))
+	group_misc.add_argument('--headless', help=wording.get('help.headless'), action='store_true',
+							default=config.get_bool_value('misc.headless'))
+	group_misc.add_argument('--log-level', help=wording.get('help.log_level'),
+							default=config.get_str_value('misc.log_level', 'info'), choices=logger.get_log_levels())
 	# execution
 	execution_providers = encode_execution_providers(onnxruntime.get_available_providers())
 	group_execution = program.add_argument_group('execution')
-	group_execution.add_argument('--execution-providers', help = wording.get('help.execution_providers').format(choices = ', '.join(execution_providers)), default = config.get_str_list('execution.execution_providers', 'cpu'), choices = execution_providers, nargs = '+', metavar = 'EXECUTION_PROVIDERS')
-	group_execution.add_argument('--execution-thread-count', help = wording.get('help.execution_thread_count'), type = int, default = config.get_int_value('execution.execution_thread_count', '4'), choices = facefusion.choices.execution_thread_count_range, metavar = create_metavar(facefusion.choices.execution_thread_count_range))
-	group_execution.add_argument('--execution-queue-count', help = wording.get('help.execution_queue_count'), type = int, default = config.get_int_value('execution.execution_queue_count', '1'), choices = facefusion.choices.execution_queue_count_range, metavar = create_metavar(facefusion.choices.execution_queue_count_range))
+	group_execution.add_argument('--execution-providers', help=wording.get('help.execution_providers').format(
+		choices=', '.join(execution_providers)), default=config.get_str_list('execution.execution_providers', 'cpu'),
+								 choices=execution_providers, nargs='+', metavar='EXECUTION_PROVIDERS')
+	group_execution.add_argument('--execution-thread-count', help=wording.get('help.execution_thread_count'), type=int,
+								 default=config.get_int_value('execution.execution_thread_count', '4'),
+								 choices=facefusion.choices.execution_thread_count_range,
+								 metavar=create_metavar(facefusion.choices.execution_thread_count_range))
+	group_execution.add_argument('--execution-queue-count', help=wording.get('help.execution_queue_count'), type=int,
+								 default=config.get_int_value('execution.execution_queue_count', '1'),
+								 choices=facefusion.choices.execution_queue_count_range,
+								 metavar=create_metavar(facefusion.choices.execution_queue_count_range))
 	# memory
 	group_memory = program.add_argument_group('memory')
-	group_memory.add_argument('--video-memory-strategy', help = wording.get('help.video_memory_strategy'), default = config.get_str_value('memory.video_memory_strategy', 'strict'), choices = facefusion.choices.video_memory_strategies)
-	group_memory.add_argument('--system-memory-limit', help = wording.get('help.system_memory_limit'), type = int, default = config.get_int_value('memory.system_memory_limit', '0'), choices = facefusion.choices.system_memory_limit_range, metavar = create_metavar(facefusion.choices.system_memory_limit_range))
+	group_memory.add_argument('--video-memory-strategy', help=wording.get('help.video_memory_strategy'),
+							  default=config.get_str_value('memory.video_memory_strategy', 'strict'),
+							  choices=facefusion.choices.video_memory_strategies)
+	group_memory.add_argument('--system-memory-limit', help=wording.get('help.system_memory_limit'), type=int,
+							  default=config.get_int_value('memory.system_memory_limit', '0'),
+							  choices=facefusion.choices.system_memory_limit_range,
+							  metavar=create_metavar(facefusion.choices.system_memory_limit_range))
 	# face analyser
 	group_face_analyser = program.add_argument_group('face analyser')
-	group_face_analyser.add_argument('--face-analyser-order', help = wording.get('help.face_analyser_order'), default = config.get_str_value('face_analyser.face_analyser_order', 'left-right'), choices = facefusion.choices.face_analyser_orders)
-	group_face_analyser.add_argument('--face-analyser-age', help = wording.get('help.face_analyser_age'), default = config.get_str_value('face_analyser.face_analyser_age'), choices = facefusion.choices.face_analyser_ages)
-	group_face_analyser.add_argument('--face-analyser-gender', help = wording.get('help.face_analyser_gender'), default = config.get_str_value('face_analyser.face_analyser_gender'), choices = facefusion.choices.face_analyser_genders)
-	group_face_analyser.add_argument('--face-detector-model', help = wording.get('help.face_detector_model'), default = config.get_str_value('face_analyser.face_detector_model', 'yoloface'), choices = facefusion.choices.face_detector_set.keys())
-	group_face_analyser.add_argument('--face-detector-size', help = wording.get('help.face_detector_size'), default = config.get_str_value('face_analyser.face_detector_size', '640x640'))
-	group_face_analyser.add_argument('--face-detector-score', help = wording.get('help.face_detector_score'), type = float, default = config.get_float_value('face_analyser.face_detector_score', '0.5'), choices = facefusion.choices.face_detector_score_range, metavar = create_metavar(facefusion.choices.face_detector_score_range))
-	group_face_analyser.add_argument('--face-landmarker-score', help = wording.get('help.face_landmarker_score'), type = float, default = config.get_float_value('face_analyser.face_landmarker_score', '0.5'), choices = facefusion.choices.face_landmarker_score_range, metavar = create_metavar(facefusion.choices.face_landmarker_score_range))
+	group_face_analyser.add_argument('--face-analyser-order', help=wording.get('help.face_analyser_order'),
+									 default=config.get_str_value('face_analyser.face_analyser_order', 'left-right'),
+									 choices=facefusion.choices.face_analyser_orders)
+	group_face_analyser.add_argument('--face-analyser-age', help=wording.get('help.face_analyser_age'),
+									 default=config.get_str_value('face_analyser.face_analyser_age'),
+									 choices=facefusion.choices.face_analyser_ages)
+	group_face_analyser.add_argument('--face-analyser-gender', help=wording.get('help.face_analyser_gender'),
+									 default=config.get_str_value('face_analyser.face_analyser_gender'),
+									 choices=facefusion.choices.face_analyser_genders)
+	group_face_analyser.add_argument('--face-detector-model', help=wording.get('help.face_detector_model'),
+									 default=config.get_str_value('face_analyser.face_detector_model', 'yoloface'),
+									 choices=facefusion.choices.face_detector_set.keys())
+	group_face_analyser.add_argument('--face-detector-size', help=wording.get('help.face_detector_size'),
+									 default=config.get_str_value('face_analyser.face_detector_size', '640x640'))
+	group_face_analyser.add_argument('--face-detector-score', help=wording.get('help.face_detector_score'), type=float,
+									 default=config.get_float_value('face_analyser.face_detector_score', '0.5'),
+									 choices=facefusion.choices.face_detector_score_range,
+									 metavar=create_metavar(facefusion.choices.face_detector_score_range))
+	group_face_analyser.add_argument('--face-landmarker-score', help=wording.get('help.face_landmarker_score'),
+									 type=float,
+									 default=config.get_float_value('face_analyser.face_landmarker_score', '0.5'),
+									 choices=facefusion.choices.face_landmarker_score_range,
+									 metavar=create_metavar(facefusion.choices.face_landmarker_score_range))
 	# face selector
 	group_face_selector = program.add_argument_group('face selector')
-	group_face_selector.add_argument('--face-selector-mode', help = wording.get('help.face_selector_mode'), default = config.get_str_value('face_selector.face_selector_mode', 'reference'), choices = facefusion.choices.face_selector_modes)
-	group_face_selector.add_argument('--reference-face-position', help = wording.get('help.reference_face_position'), type = int, default = config.get_int_value('face_selector.reference_face_position', '0'))
-	group_face_selector.add_argument('--reference-face-distance', help = wording.get('help.reference_face_distance'), type = float, default = config.get_float_value('face_selector.reference_face_distance', '0.6'), choices = facefusion.choices.reference_face_distance_range, metavar = create_metavar(facefusion.choices.reference_face_distance_range))
-	group_face_selector.add_argument('--reference-frame-number', help = wording.get('help.reference_frame_number'), type = int, default = config.get_int_value('face_selector.reference_frame_number', '0'))
+	group_face_selector.add_argument('--face-selector-mode', help=wording.get('help.face_selector_mode'),
+									 default=config.get_str_value('face_selector.face_selector_mode', 'reference'),
+									 choices=facefusion.choices.face_selector_modes)
+	group_face_selector.add_argument('--reference-face-position', help=wording.get('help.reference_face_position'),
+									 type=int,
+									 default=config.get_int_value('face_selector.reference_face_position', '0'))
+	group_face_selector.add_argument('--reference-face-distance', help=wording.get('help.reference_face_distance'),
+									 type=float,
+									 default=config.get_float_value('face_selector.reference_face_distance', '0.6'),
+									 choices=facefusion.choices.reference_face_distance_range,
+									 metavar=create_metavar(facefusion.choices.reference_face_distance_range))
+	group_face_selector.add_argument('--reference-frame-number', help=wording.get('help.reference_frame_number'),
+									 type=int,
+									 default=config.get_int_value('face_selector.reference_frame_number', '0'))
 	# face mask
 	group_face_mask = program.add_argument_group('face mask')
-	group_face_mask.add_argument('--face-mask-types', help = wording.get('help.face_mask_types').format(choices = ', '.join(facefusion.choices.face_mask_types)), default = config.get_str_list('face_mask.face_mask_types', 'box'), choices = facefusion.choices.face_mask_types, nargs = '+', metavar = 'FACE_MASK_TYPES')
-	group_face_mask.add_argument('--face-mask-blur', help = wording.get('help.face_mask_blur'), type = float, default = config.get_float_value('face_mask.face_mask_blur', '0.3'), choices = facefusion.choices.face_mask_blur_range, metavar = create_metavar(facefusion.choices.face_mask_blur_range))
-	group_face_mask.add_argument('--face-mask-padding', help = wording.get('help.face_mask_padding'), type = int, default = config.get_int_list('face_mask.face_mask_padding', '0 0 0 0'), nargs = '+')
-	group_face_mask.add_argument('--face-mask-regions', help = wording.get('help.face_mask_regions').format(choices = ', '.join(facefusion.choices.face_mask_regions)), default = config.get_str_list('face_mask.face_mask_regions', ' '.join(facefusion.choices.face_mask_regions)), choices = facefusion.choices.face_mask_regions, nargs = '+', metavar = 'FACE_MASK_REGIONS')
+	group_face_mask.add_argument('--face-mask-types', help=wording.get('help.face_mask_types').format(
+		choices=', '.join(facefusion.choices.face_mask_types)),
+								 default=config.get_str_list('face_mask.face_mask_types', 'box'),
+								 choices=facefusion.choices.face_mask_types, nargs='+', metavar='FACE_MASK_TYPES')
+	group_face_mask.add_argument('--face-mask-blur', help=wording.get('help.face_mask_blur'), type=float,
+								 default=config.get_float_value('face_mask.face_mask_blur', '0.3'),
+								 choices=facefusion.choices.face_mask_blur_range,
+								 metavar=create_metavar(facefusion.choices.face_mask_blur_range))
+	group_face_mask.add_argument('--face-mask-padding', help=wording.get('help.face_mask_padding'), type=int,
+								 default=config.get_int_list('face_mask.face_mask_padding', '0 0 0 0'), nargs='+')
+	group_face_mask.add_argument('--face-mask-regions', help=wording.get('help.face_mask_regions').format(
+		choices=', '.join(facefusion.choices.face_mask_regions)),
+								 default=config.get_str_list('face_mask.face_mask_regions',
+															 ' '.join(facefusion.choices.face_mask_regions)),
+								 choices=facefusion.choices.face_mask_regions, nargs='+', metavar='FACE_MASK_REGIONS')
 	# frame extraction
 	group_frame_extraction = program.add_argument_group('frame extraction')
-	group_frame_extraction.add_argument('--trim-frame-start', help = wording.get('help.trim_frame_start'), type = int, default = facefusion.config.get_int_value('frame_extraction.trim_frame_start'))
-	group_frame_extraction.add_argument('--trim-frame-end',	help = wording.get('help.trim_frame_end'), type = int, default = facefusion.config.get_int_value('frame_extraction.trim_frame_end'))
-	group_frame_extraction.add_argument('--temp-frame-format', help = wording.get('help.temp_frame_format'), default = config.get_str_value('frame_extraction.temp_frame_format', 'png'), choices = facefusion.choices.temp_frame_formats)
-	group_frame_extraction.add_argument('--keep-temp', help = wording.get('help.keep_temp'), action = 'store_true',	default = config.get_bool_value('frame_extraction.keep_temp'))
+	group_frame_extraction.add_argument('--trim-frame-start', help=wording.get('help.trim_frame_start'), type=int,
+										default=facefusion.config.get_int_value('frame_extraction.trim_frame_start'))
+	group_frame_extraction.add_argument('--trim-frame-end', help=wording.get('help.trim_frame_end'), type=int,
+										default=facefusion.config.get_int_value('frame_extraction.trim_frame_end'))
+	group_frame_extraction.add_argument('--temp-frame-format', help=wording.get('help.temp_frame_format'),
+										default=config.get_str_value('frame_extraction.temp_frame_format', 'png'),
+										choices=facefusion.choices.temp_frame_formats)
+	group_frame_extraction.add_argument('--keep-temp', help=wording.get('help.keep_temp'), action='store_true',
+										default=config.get_bool_value('frame_extraction.keep_temp'))
 	# output creation
 	group_output_creation = program.add_argument_group('output creation')
-	group_output_creation.add_argument('--output-image-quality', help = wording.get('help.output_image_quality'), type = int, default = config.get_int_value('output_creation.output_image_quality', '90'), choices = facefusion.choices.output_image_quality_range, metavar = create_metavar(facefusion.choices.output_image_quality_range))
-	group_output_creation.add_argument('--output-image-resolution', help = wording.get('help.output_image_resolution'), default = config.get_str_value('output_creation.output_image_resolution'))
-	group_output_creation.add_argument('--output-video-encoder', help = wording.get('help.output_video_encoder'), default = config.get_str_value('output_creation.output_video_encoder', 'libx264'), choices = facefusion.choices.output_video_encoders)
+	group_output_creation.add_argument('--output-image-quality', help=wording.get('help.output_image_quality'),
+									   type=int,
+									   default=config.get_int_value('output_creation.output_image_quality', '90'),
+									   choices=facefusion.choices.output_image_quality_range,
+									   metavar=create_metavar(facefusion.choices.output_image_quality_range))
+	group_output_creation.add_argument('--output-image-resolution', help=wording.get('help.output_image_resolution'),
+									   default=config.get_str_value('output_creation.output_image_resolution'))
+	group_output_creation.add_argument('--output-video-encoder', help=wording.get('help.output_video_encoder'),
+									   default=config.get_str_value('output_creation.output_video_encoder', 'libx264'),
+									   choices=facefusion.choices.output_video_encoders)
 	# -preset参数是与某些编码器（特别是x264和x265编码器）一起使用的，用于设置编码的预设级别。预设级别影响编码速度和输出文件的质量。较高的预设级别（例如ultrafast）将提供更快的编码速度，但可能会降低输出质量；而较低的预设级别（例如veryslow）将提供更精细的编码和更好的质量，但编码时间会更长。
 	#
 	# 对于x264编码器，一些常见的-preset选项包括：
@@ -120,28 +202,41 @@ def cli() -> None:
 	# slow：较慢的编码速度，但质量更高。
 	# slower：比slow更慢的编码速度，质量进一步提高。
 	# veryslow：非常慢的编码速度，但提供最高质量。
-	group_output_creation.add_argument('--output-video-preset', help = wording.get('help.output_video_preset'), default = config.get_str_value('output_creation.output_video_preset', 'veryfast'), choices = facefusion.choices.output_video_presets)
+	group_output_creation.add_argument('--output-video-preset', help=wording.get('help.output_video_preset'),
+									   default=config.get_str_value('output_creation.output_video_preset', 'veryfast'),
+									   choices=facefusion.choices.output_video_presets)
 	# 输出视频质量从80->90
-	group_output_creation.add_argument('--output-video-quality', help = wording.get('help.output_video_quality'), type = int, default = config.get_int_value('output_creation.output_video_quality', '90'), choices = facefusion.choices.output_video_quality_range, metavar = create_metavar(facefusion.choices.output_video_quality_range))
-	group_output_creation.add_argument('--output-video-resolution', help = wording.get('help.output_video_resolution'), default = config.get_str_value('output_creation.output_video_resolution'))
-	group_output_creation.add_argument('--output-video-fps', help = wording.get('help.output_video_fps'), type = float, default = config.get_str_value('output_creation.output_video_fps'))
-	group_output_creation.add_argument('--skip-audio', help = wording.get('help.skip_audio'), action = 'store_true', default = config.get_bool_value('output_creation.skip_audio'))
+	group_output_creation.add_argument('--output-video-quality', help=wording.get('help.output_video_quality'),
+									   type=int,
+									   default=config.get_int_value('output_creation.output_video_quality', '90'),
+									   choices=facefusion.choices.output_video_quality_range,
+									   metavar=create_metavar(facefusion.choices.output_video_quality_range))
+	group_output_creation.add_argument('--output-video-resolution', help=wording.get('help.output_video_resolution'),
+									   default=config.get_str_value('output_creation.output_video_resolution'))
+	group_output_creation.add_argument('--output-video-fps', help=wording.get('help.output_video_fps'), type=float,
+									   default=config.get_str_value('output_creation.output_video_fps'))
+	group_output_creation.add_argument('--skip-audio', help=wording.get('help.skip_audio'), action='store_true',
+									   default=config.get_bool_value('output_creation.skip_audio'))
 	# frame processors
 	available_frame_processors = list_directory('facefusion/processors/frame/modules')
-	program = ArgumentParser(parents = [ program ], formatter_class = program.formatter_class, add_help = True)
+	program = ArgumentParser(parents=[program], formatter_class=program.formatter_class, add_help=True)
 	group_frame_processors = program.add_argument_group('frame processors')
-	group_frame_processors.add_argument('--frame-processors', help = wording.get('help.frame_processors').format(choices = ', '.join(available_frame_processors)), default = config.get_str_list('frame_processors.frame_processors', 'face_swapper'), nargs = '+')
+	group_frame_processors.add_argument('--frame-processors', help=wording.get('help.frame_processors').format(
+		choices=', '.join(available_frame_processors)), default=config.get_str_list('frame_processors.frame_processors',
+																					'face_swapper'), nargs='+')
 	for frame_processor in available_frame_processors:
 		frame_processor_module = load_frame_processor_module(frame_processor)
 		frame_processor_module.register_args(group_frame_processors)
 	# uis
 	available_ui_layouts = list_directory('facefusion/uis/layouts')
 	group_uis = program.add_argument_group('uis')
-	group_uis.add_argument('--ui-layouts', help = wording.get('help.ui_layouts').format(choices = ', '.join(available_ui_layouts)), default = config.get_str_list('uis.ui_layouts', 'default'), nargs = '+')
+	group_uis.add_argument('--ui-layouts',
+						   help=wording.get('help.ui_layouts').format(choices=', '.join(available_ui_layouts)),
+						   default=config.get_str_list('uis.ui_layouts', 'default'), nargs='+')
 	run(program)
 
 
-def validate_args(program : ArgumentParser) -> None:
+def validate_args(program: ArgumentParser) -> None:
 	try:
 		for action in program._actions:
 			if action.default:
@@ -154,12 +249,14 @@ def validate_args(program : ArgumentParser) -> None:
 		program.error(str(exception))
 
 
-def apply_args(program : ArgumentParser) -> None:
+def apply_args(program: ArgumentParser) -> None:
 	args = program.parse_args()
 	# general
 	facefusion.globals.source_paths = args.source_paths
 	facefusion.globals.target_path = args.target_path
 	facefusion.globals.output_path = args.output_path
+	# 目标图片的目录路径,如果指定将会处理目录下(包括子目录)所有的图片 target_dir
+	facefusion.globals.target_dir = args.target_dir
 	facefusion.globals.temp_dir = args.temp_dir
 	# misc
 	facefusion.globals.force_download = args.force_download
@@ -235,7 +332,7 @@ def apply_args(program : ArgumentParser) -> None:
 	facefusion.globals.ui_layouts = args.ui_layouts
 
 
-def run(program : ArgumentParser) -> None:
+def run(program: ArgumentParser) -> None:
 	validate_args(program)
 	apply_args(program)
 	logger.init(facefusion.globals.log_level)
@@ -272,7 +369,7 @@ def destroy() -> None:
 
 def pre_check() -> bool:
 	if sys.version_info < (3, 9):
-		logger.error(wording.get('python_not_supported').format(version = '3.9'), __name__.upper())
+		logger.error(wording.get('python_not_supported').format(version='3.9'), __name__.upper())
 		return False
 	if not shutil.which('ffmpeg'):
 		logger.error(wording.get('ffmpeg_not_installed'), __name__.upper())
@@ -280,7 +377,12 @@ def pre_check() -> bool:
 	return True
 
 
-#开始运行的主函数
+def once_image(image_path) -> None:
+	facefusion.globals.target_path = image_path
+	process_image(time())
+
+
+# 开始运行的主函数
 def conditional_process() -> None:
 	start_time = time()
 	for frame_processor_module in get_frame_processors_modules(facefusion.globals.frame_processors):
@@ -292,7 +394,11 @@ def conditional_process() -> None:
 			return
 	conditional_append_reference_faces()
 	if is_image(facefusion.globals.target_path):
-		process_image(start_time)
+		# 如果发现有target_dir,递归遍历target_dir目录下的所有图片(包括子目录)把路径写入到target_path变量中一个一个处理
+		if facefusion.globals.target_dir:
+			find_images(facefusion.globals.target_dir, once_image)
+		else:
+			process_image(start_time)
 	if is_video(facefusion.globals.target_path):
 		process_video(start_time)
 
@@ -309,7 +415,8 @@ def conditional_append_reference_faces() -> None:
 		append_reference_face('origin', reference_face)
 		if source_face and reference_face:
 			for frame_processor_module in get_frame_processors_modules(facefusion.globals.frame_processors):
-				abstract_reference_frame = frame_processor_module.get_reference_frame(source_face, reference_face, reference_frame)
+				abstract_reference_frame = frame_processor_module.get_reference_frame(source_face, reference_face,
+																					  reference_frame)
 				if numpy.any(abstract_reference_frame):
 					reference_frame = abstract_reference_frame
 					reference_face = get_one_face(reference_frame, facefusion.globals.reference_face_position)
@@ -319,29 +426,30 @@ def conditional_append_reference_faces() -> None:
 def force_download() -> None:
 	download_directory_path = resolve_relative_path('../.assets/models')
 	available_frame_processors = list_directory('facefusion/processors/frame/modules')
-	model_list =\
-	[
-		content_analyser.MODELS,
-		face_analyser.MODELS,
-		face_masker.MODELS,
-		voice_extractor.MODELS
-	]
+	model_list = \
+		[
+			content_analyser.MODELS,
+			face_analyser.MODELS,
+			face_masker.MODELS,
+			voice_extractor.MODELS
+		]
 
 	for frame_processor_module in get_frame_processors_modules(available_frame_processors):
 		if hasattr(frame_processor_module, 'MODELS'):
 			model_list.append(frame_processor_module.MODELS)
-	model_urls = [ models[model].get('url') for models in model_list for model in models ]
+	model_urls = [models[model].get('url') for models in model_list for model in models]
 	conditional_download(download_directory_path, model_urls)
 
 
-def process_image(start_time : float) -> None:
+def process_image(start_time: float) -> None:
 	normed_output_path = normalize_output_path(facefusion.globals.target_path, facefusion.globals.output_path)
 	if analyse_image(facefusion.globals.target_path):
 		return
 	# copy image
 	process_manager.start()
-	temp_image_resolution = pack_resolution(restrict_image_resolution(facefusion.globals.target_path, unpack_resolution(facefusion.globals.output_image_resolution)))
-	logger.info(wording.get('copying_image').format(resolution = temp_image_resolution), __name__.upper())
+	temp_image_resolution = pack_resolution(restrict_image_resolution(facefusion.globals.target_path, unpack_resolution(
+		facefusion.globals.output_image_resolution)))
+	logger.info(wording.get('copying_image').format(resolution=temp_image_resolution), __name__.upper())
 	if copy_image(facefusion.globals.target_path, normed_output_path, temp_image_resolution):
 		logger.debug(wording.get('copying_image_succeed'), __name__.upper())
 	else:
@@ -355,7 +463,8 @@ def process_image(start_time : float) -> None:
 	if is_process_stopping():
 		return
 	# finalize image
-	logger.info(wording.get('finalizing_image').format(resolution = facefusion.globals.output_image_resolution), __name__.upper())
+	logger.info(wording.get('finalizing_image').format(resolution=facefusion.globals.output_image_resolution),
+				__name__.upper())
 	if finalize_image(normed_output_path, facefusion.globals.output_image_resolution):
 		logger.debug(wording.get('finalizing_image_succeed'), __name__.upper())
 	else:
@@ -363,16 +472,15 @@ def process_image(start_time : float) -> None:
 	# validate image
 	if is_image(normed_output_path):
 		seconds = '{:.2f}'.format((time() - start_time) % 60)
-		logger.info(wording.get('processing_image_succeed').format(seconds = seconds), __name__.upper())
+		logger.info(wording.get('processing_image_succeed').format(seconds=seconds), __name__.upper())
 		conditional_log_statistics()
 	else:
 		logger.error(wording.get('processing_image_failed'), __name__.upper())
 	process_manager.end()
 
 
-
 # 视频处理核心流程
-def process_video(start_time : float) -> None:
+def process_video(start_time: float) -> None:
 	# 标记转换完成后是否需要清理target_path
 	clear_target_path_file_flag = False
 	# 处理视频时如果是Windows临时目录,先移动到存放视频的临时目录,然后再处理,避免浏览器关闭后清空的情况
@@ -384,10 +492,10 @@ def process_video(start_time : float) -> None:
 			# 移动当前文件(facefusion.globals.target_path)的顶级目录下的tmp文件下,
 			# 如:"C:\Users\ADMINI~1.PC-\AppData\Local\Temp\gradio\21fbb2f7a1ee6427297bc1107ea883b497bae513\Until" 则移动到C:\tmp下
 			move_path = facefusion.globals.target_path.split('\\')
-			move_path = move_path[0]+"\\"+"tmp"
+			move_path = move_path[0] + "\\" + "tmp"
 			# 添加facefusion.globals.target_path中的文件名
 			move_path = move_path + "\\" + (facefusion.globals.target_path.split('\\')[-1])
-			logger.info("move_path:"+move_path, __name__.upper())
+			logger.info("move_path:" + move_path, __name__.upper())
 			shutil.move(facefusion.globals.target_path, move_path)
 			facefusion.globals.target_path = move_path
 			if TARGET_FILE is not None:
@@ -396,7 +504,8 @@ def process_video(start_time : float) -> None:
 			clear_target_path_file_flag = True
 
 	normed_output_path = normalize_output_path(facefusion.globals.target_path, facefusion.globals.output_path)
-	if analyse_video(facefusion.globals.target_path, facefusion.globals.trim_frame_start, facefusion.globals.trim_frame_end):
+	if analyse_video(facefusion.globals.target_path, facefusion.globals.trim_frame_start,
+					 facefusion.globals.trim_frame_end):
 		return
 	# clear temp
 	logger.debug(wording.get('clearing_temp'), __name__.upper())
@@ -406,9 +515,11 @@ def process_video(start_time : float) -> None:
 	create_temp(facefusion.globals.target_path)
 	# extract frames
 	process_manager.start()
-	temp_video_resolution = pack_resolution(restrict_video_resolution(facefusion.globals.target_path, unpack_resolution(facefusion.globals.output_video_resolution)))
+	temp_video_resolution = pack_resolution(restrict_video_resolution(facefusion.globals.target_path, unpack_resolution(
+		facefusion.globals.output_video_resolution)))
 	temp_video_fps = restrict_video_fps(facefusion.globals.target_path, facefusion.globals.output_video_fps)
-	logger.info(wording.get('extracting_frames').format(resolution = temp_video_resolution, fps = temp_video_fps), __name__.upper())
+	logger.info(wording.get('extracting_frames').format(resolution=temp_video_resolution, fps=temp_video_fps),
+				__name__.upper())
 	if extract_frames(facefusion.globals.target_path, temp_video_resolution, temp_video_fps):
 		logger.debug(wording.get('extracting_frames_succeed'), __name__.upper())
 	else:
@@ -422,7 +533,8 @@ def process_video(start_time : float) -> None:
 		for frame_processor_module in get_frame_processors_modules(facefusion.globals.frame_processors):
 			logger.info(wording.get('processing'), frame_processor_module.NAME)
 			# 模型处理视频帧
-			new_temp_frame_paths = frame_processor_module.process_video(facefusion.globals.source_paths, temp_frame_paths)
+			new_temp_frame_paths = frame_processor_module.process_video(facefusion.globals.source_paths,
+																		temp_frame_paths)
 			if new_temp_frame_paths:
 				temp_frame_paths = new_temp_frame_paths
 			frame_processor_module.post_process()
@@ -432,8 +544,10 @@ def process_video(start_time : float) -> None:
 		logger.error(wording.get('temp_frames_not_found'), __name__.upper())
 		return
 	# merge video
-	logger.info(wording.get('merging_video').format(resolution = facefusion.globals.output_video_resolution, fps = facefusion.globals.output_video_fps), __name__.upper())
-	if merge_video(facefusion.globals.target_path, facefusion.globals.output_video_resolution, facefusion.globals.output_video_fps):
+	logger.info(wording.get('merging_video').format(resolution=facefusion.globals.output_video_resolution,
+													fps=facefusion.globals.output_video_fps), __name__.upper())
+	if merge_video(facefusion.globals.target_path, facefusion.globals.output_video_resolution,
+				   facefusion.globals.output_video_fps):
 		logger.debug(wording.get('merging_video_succeed'), __name__.upper())
 	else:
 		if is_process_stopping():
@@ -447,7 +561,8 @@ def process_video(start_time : float) -> None:
 	else:
 		if 'lip_syncer' in facefusion.globals.frame_processors:
 			source_audio_path = get_first(filter_audio_paths(facefusion.globals.source_paths))
-			if source_audio_path and replace_audio(facefusion.globals.target_path, source_audio_path, normed_output_path):
+			if source_audio_path and replace_audio(facefusion.globals.target_path, source_audio_path,
+												   normed_output_path):
 				logger.debug(wording.get('restoring_audio_succeed'), __name__.upper())
 			else:
 				if is_process_stopping():
@@ -466,7 +581,7 @@ def process_video(start_time : float) -> None:
 	# validate video
 	if is_video(normed_output_path):
 		seconds = '{:.2f}'.format((time() - start_time))
-		logger.info(wording.get('processing_video_succeed').format(seconds = seconds), __name__.upper())
+		logger.info(wording.get('processing_video_succeed').format(seconds=seconds), __name__.upper())
 		conditional_log_statistics()
 	else:
 		logger.error(wording.get('processing_video_failed'), __name__.upper())
@@ -505,6 +620,7 @@ def process_video(start_time : float) -> None:
 		clear_temp(facefusion.globals.target_path)
 		if clear_target_path_file_flag and not facefusion.globals.keep_temp:
 			os.remove(facefusion.globals.target_path)
+
 
 def is_process_stopping() -> bool:
 	if process_manager.is_stopping():

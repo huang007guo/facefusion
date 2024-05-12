@@ -89,28 +89,31 @@ def prepare_frame(vision_frame : VisionFrame) -> VisionFrame:
 	vision_frame = numpy.expand_dims(vision_frame, axis = 0)
 	return vision_frame
 
-
+# 禁用
 @lru_cache(maxsize = None)
 def analyse_image(image_path : str) -> bool:
-	frame = read_image(image_path)
-	return analyse_frame(frame)
+	# frame = read_image(image_path)
+	# return analyse_frame(frame)
+	return False
 
 
+# 禁用
 @lru_cache(maxsize = None)
 def analyse_video(video_path : str, start_frame : int, end_frame : int) -> bool:
-	video_frame_total = count_video_frame_total(video_path)
-	video_fps = detect_video_fps(video_path)
-	frame_range = range(start_frame or 0, end_frame or video_frame_total)
-	rate = 0.0
-	counter = 0
-
-	with tqdm(total = len(frame_range), desc = wording.get('analysing'), unit = 'frame', ascii = ' =', disable = facefusion.globals.log_level in [ 'warn', 'error' ]) as progress:
-		for frame_number in frame_range:
-			if frame_number % int(video_fps) == 0:
-				frame = get_video_frame(video_path, frame_number)
-				if analyse_frame(frame):
-					counter += 1
-			rate = counter * int(video_fps) / len(frame_range) * 100
-			progress.update()
-			progress.set_postfix(rate = rate)
-	return rate > RATE_LIMIT
+	# video_frame_total = count_video_frame_total(video_path)
+	# video_fps = detect_video_fps(video_path)
+	# frame_range = range(start_frame or 0, end_frame or video_frame_total)
+	# rate = 0.0
+	# counter = 0
+	#
+	# with tqdm(total = len(frame_range), desc = wording.get('analysing'), unit = 'frame', ascii = ' =', disable = facefusion.globals.log_level in [ 'warn', 'error' ]) as progress:
+	# 	for frame_number in frame_range:
+	# 		if frame_number % int(video_fps) == 0:
+	# 			frame = get_video_frame(video_path, frame_number)
+	# 			if analyse_frame(frame):
+	# 				counter += 1
+	# 		rate = counter * int(video_fps) / len(frame_range) * 100
+	# 		progress.update()
+	# 		progress.set_postfix(rate = rate)
+	# return rate > RATE_LIMIT
+	return False

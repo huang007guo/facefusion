@@ -33,6 +33,8 @@ options:
   -h, --help                                                                                                                                            show this help message and exit
   -s SOURCE_PATHS, --source SOURCE_PATHS                                                                                                                choose single or multiple source images or audios
   -t TARGET_PATH, --target TARGET_PATH                                                                                                                  choose single target image or video
+  # 目标图片的目录路径,如果指定将会处理目录下(包括子目录)所有的图片 target_dir
+  -target_dir TARGET_DIR, --target-dir TARGET_DIR                                                                                                      specify the target directory
   -o OUTPUT_PATH, --output OUTPUT_PATH                                                                                                                  specify the output file or directory
   -v, --version                                                                                                                                         show program's version number and exit
 

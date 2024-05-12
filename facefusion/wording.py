@@ -198,6 +198,7 @@ WORDING : Dict[str, Any] =\
 		'source_file': 'SOURCE',
 		# target
 		'target_file': 'TARGET',
+		'target_dir_textbox': 'TARGET DIR',
 		# temp frame
 		'temp_frame_format_dropdown': 'TEMP FRAME FORMAT',
 		# trim frame

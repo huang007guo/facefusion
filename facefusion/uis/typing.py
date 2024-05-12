@@ -41,6 +41,7 @@ ComponentName = Literal\
 	'frame_enhancer_blend_slider',
 	'lip_syncer_model_dropdown',
 	'output_path_textbox',
+	'target_dir_textbox',
 	'output_video_fps_slider',
 	'benchmark_runs_checkbox_group',
 	'benchmark_cycles_slider',

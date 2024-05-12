@@ -1,4 +1,5 @@
 import base64
+import fnmatch
 from typing import List, Optional
 import glob
 import os
@@ -6,6 +7,8 @@ import shutil
 import tempfile
 import filetype
 from pathlib import Path
+
+from filetype.types import IMAGE as FILETYPE_IMAGE
 
 import facefusion.globals
 from facefusion import logger
@@ -151,6 +154,42 @@ def has_image(image_paths: List[str]) -> bool:
 	if image_paths:
 		return any(is_image(image_path) for image_path in image_paths)
 	return False
+
+
+def find_images(target_dir, call_back: callable = None):
+	"""
+	递归遍历target_dir目录下的所有图片文件（包括子目录），
+	并将图片文件的路径存储到一个列表中返回。
+
+	:param call_back:
+	:param target_dir: 要遍历的目录路径
+	:return: 包含所有图片路径的列表
+	"""
+	# 图片文件的可能扩展名列表
+	# img_extensions = ['*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp']
+	img_extensions = [img_ext for img_ext in [now_file_type.EXTENSION for now_file_type in FILETYPE_IMAGE]]
+	img_extensions.append("jpeg")
+	image_paths = []  # 用于存储图片路径的列表
+
+	# 递归遍历目录
+	for root, dirs, files in os.walk(target_dir):
+		for img_file in files:
+			# 当前文件后缀
+			extension = img_file.split('.')[-1]
+			if extension in img_extensions:
+		# for extension in img_extensions:
+			# 使用fnmatch过滤出图片文件,使用is_image?
+			# for img_file in fnmatch.filter(files, extension):
+				# 获取完整的图片文件路径并添加到列表中
+				img_path = os.path.join(root, img_file)
+				if call_back:
+					call_back(img_path)
+				else:
+					image_paths.append(img_path)
+			# 这里可以根据需要对每个图片路径进行处理
+			# process_image(img_path)  # 示例处理函数调用
+
+	return image_paths
 
 
 def is_video(video_path: str) -> bool:
