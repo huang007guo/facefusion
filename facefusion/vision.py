@@ -1,7 +1,9 @@
+import os
 from typing import Optional, List, Tuple
 from functools import lru_cache
 import cv2
 import numpy
+import numpy as np
 from cv2.typing import Size
 
 from facefusion.typing import VisionFrame, Resolution, Fps
@@ -24,7 +26,13 @@ def read_static_images(image_paths : List[str]) -> Optional[List[VisionFrame]]:
 
 def read_image(image_path : str) -> Optional[VisionFrame]:
 	if is_image(image_path):
-		return cv2.imread(image_path)
+		# 如果不提供，它会默认使用 cv2.IMREAD_COLOR
+		read_con = cv2.imread(image_path)
+		# 可能是中文路径读取错误
+		# 读取标志有三种：cv2.IMREAD_COLOR（加载彩色图片）、cv2.IMREAD_GRAYSCALE（以灰度模式加载图片）和cv2.IMREAD_UNCHANGED（包括alpha）
+		if read_con is not None:
+			return read_con
+		return cv2.imdecode(np.fromfile(image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
 	return None
 
 

@@ -4,11 +4,11 @@ import gradio
 
 import facefusion.globals
 from facefusion import process_manager, wording
-from facefusion.core import conditional_process
+from facefusion.core import conditional_process, once_conditional_process
 from facefusion.memory import limit_system_memory
 from facefusion.normalizer import normalize_output_path
 from facefusion.uis.core import get_ui_component
-from facefusion.filesystem import clear_temp, is_image, is_video
+from facefusion.filesystem import clear_temp, is_image, is_video, find_images_or_videos
 
 OUTPUT_IMAGE : Optional[gradio.Image] = None
 OUTPUT_VIDEO : Optional[gradio.Video] = None
@@ -69,7 +69,12 @@ def process() -> Tuple[gradio.Image, gradio.Video, gradio.Button, gradio.Button]
 	normed_output_path = normalize_output_path(facefusion.globals.target_path, facefusion.globals.output_path)
 	if facefusion.globals.system_memory_limit > 0:
 		limit_system_memory(facefusion.globals.system_memory_limit)
-	conditional_process()
+	# facefusion.globals.target_dir
+	# 如果发现有target_dir,递归遍历target_dir目录下的所有图片(包括子目录)把路径写入到target_path变量中一个一个处理
+	if facefusion.globals.target_dir:
+		find_images_or_videos(facefusion.globals.target_dir, once_conditional_process)
+	else:
+		conditional_process()
 	if is_image(normed_output_path):
 		return gradio.Image(value = normed_output_path, visible = True), gradio.Video(value = None, visible = False), gradio.Button(visible = True), gradio.Button(visible = False)
 	if is_video(normed_output_path):

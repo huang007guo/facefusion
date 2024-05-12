@@ -4,6 +4,8 @@ import platform
 # File "D:\ProgramData\Anaconda3\envs\facefusion\lib\site-packages\matplotlib\pyplot.py", line 343, in switch_backend
 #     canvas_class = module.FigureCanvas
 # AttributeError: module 'backend_interagg' has no attribute 'FigureCanvas'
+import traceback
+
 import matplotlib
 
 matplotlib.use('Agg')  # 在导入pyplot之前指定
@@ -37,7 +39,7 @@ from facefusion.memory import limit_system_memory
 from facefusion.statistics import conditional_log_statistics
 from facefusion.download import conditional_download
 from facefusion.filesystem import list_directory, get_temp_frame_paths, create_temp, move_temp, clear_temp, is_image, \
-	is_video, filter_audio_paths, resolve_relative_path, is_temp_moved, is_temp_file, find_images
+	is_video, filter_audio_paths, resolve_relative_path, is_temp_moved, is_temp_file, find_images, find_images_or_videos
 from facefusion.ffmpeg import extract_frames, merge_video, copy_image, finalize_image, restore_audio, replace_audio
 from facefusion.vision import read_image, read_static_images, detect_image_resolution, restrict_video_fps, \
 	create_image_resolutions, get_video_frame, detect_video_resolution, detect_video_fps, restrict_video_resolution, \
@@ -348,7 +350,12 @@ def run(program: ArgumentParser) -> None:
 		if not frame_processor_module.pre_check():
 			return
 	if facefusion.globals.headless:
-		conditional_process()
+		# facefusion.globals.target_dir
+		# 如果发现有target_dir,递归遍历target_dir目录下的所有图片(包括子目录)把路径写入到target_path变量中一个一个处理
+		if facefusion.globals.target_dir:
+			find_images_or_videos(facefusion.globals.target_dir, once_conditional_process)
+		else:
+			conditional_process()
 	else:
 		import facefusion.uis.core as ui
 
@@ -377,13 +384,32 @@ def pre_check() -> bool:
 	return True
 
 
+def once_conditional_process(image_path) -> None:
+	facefusion.globals.target_path = image_path
+	try:
+		conditional_process()
+	except Exception as e:
+		logger.error("conditional_process error:"+image_path, __name__.upper())
+		logger.error(str(e), __name__.upper())
+		# 打印异常信息
+		print(traceback.format_exc())
+		return
+
 def once_image(image_path) -> None:
 	facefusion.globals.target_path = image_path
-	process_image(time())
+	try:
+		process_image(time())
+	except Exception as e:
+		logger.error("process_image error:"+image_path, __name__.upper())
+		logger.error(str(e), __name__.upper())
+		return
 
 
 # 开始运行的主函数
 def conditional_process() -> None:
+	# 避免单次被覆盖,临时保存输出分辨率设置
+	old_output_video_resolution = facefusion.globals.output_video_resolution
+	old_output_image_resolution = facefusion.globals.output_image_resolution
 	start_time = time()
 	for frame_processor_module in get_frame_processors_modules(facefusion.globals.frame_processors):
 		while not frame_processor_module.post_check():
@@ -394,13 +420,12 @@ def conditional_process() -> None:
 			return
 	conditional_append_reference_faces()
 	if is_image(facefusion.globals.target_path):
-		# 如果发现有target_dir,递归遍历target_dir目录下的所有图片(包括子目录)把路径写入到target_path变量中一个一个处理
-		if facefusion.globals.target_dir:
-			find_images(facefusion.globals.target_dir, once_image)
-		else:
-			process_image(start_time)
+		process_image(start_time)
 	if is_video(facefusion.globals.target_path):
 		process_video(start_time)
+	# 还原设置
+	facefusion.globals.output_video_resolution = old_output_video_resolution
+	facefusion.globals.output_image_resolution = old_output_image_resolution
 
 
 def conditional_append_reference_faces() -> None:
@@ -447,6 +472,9 @@ def process_image(start_time: float) -> None:
 		return
 	# copy image
 	process_manager.start()
+	# 如果目标分辨率不存在临时使用当前图片的
+	if not facefusion.globals.output_image_resolution:
+		facefusion.globals.output_image_resolution = 'x'.join([str(s)  for s in detect_image_resolution(facefusion.globals.target_path)])
 	temp_image_resolution = pack_resolution(restrict_image_resolution(facefusion.globals.target_path, unpack_resolution(
 		facefusion.globals.output_image_resolution)))
 	logger.info(wording.get('copying_image').format(resolution=temp_image_resolution), __name__.upper())
@@ -515,6 +543,9 @@ def process_video(start_time: float) -> None:
 	create_temp(facefusion.globals.target_path)
 	# extract frames
 	process_manager.start()
+	# 如果目标分辨率不存在临时使用当前图片的
+	if not facefusion.globals.output_video_resolution:
+		facefusion.globals.output_video_resolution = 'x'.join([str(s)  for s in restrict_video_resolution(facefusion.globals.target_path)])
 	temp_video_resolution = pack_resolution(restrict_video_resolution(facefusion.globals.target_path, unpack_resolution(
 		facefusion.globals.output_video_resolution)))
 	temp_video_fps = restrict_video_fps(facefusion.globals.target_path, facefusion.globals.output_video_fps)

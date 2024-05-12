@@ -8,7 +8,7 @@ import tempfile
 import filetype
 from pathlib import Path
 
-from filetype.types import IMAGE as FILETYPE_IMAGE
+from filetype.types import IMAGE as FILETYPE_IMAGE, VIDEO as FILETYPE_VIDEO
 
 import facefusion.globals
 from facefusion import logger
@@ -157,18 +157,24 @@ def has_image(image_paths: List[str]) -> bool:
 
 
 def find_images(target_dir, call_back: callable = None):
+	img_extensions = [img_ext for img_ext in [now_file_type.EXTENSION for now_file_type in FILETYPE_IMAGE]]
+	img_extensions.append("jpeg")
+	return find_files(target_dir, img_extensions, call_back)
+
+
+def find_files(target_dir, img_extensions, call_back: callable = None):
 	"""
 	递归遍历target_dir目录下的所有图片文件（包括子目录），
 	并将图片文件的路径存储到一个列表中返回。
 
+	:param img_extensions:
 	:param call_back:
 	:param target_dir: 要遍历的目录路径
 	:return: 包含所有图片路径的列表
 	"""
 	# 图片文件的可能扩展名列表
 	# img_extensions = ['*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp']
-	img_extensions = [img_ext for img_ext in [now_file_type.EXTENSION for now_file_type in FILETYPE_IMAGE]]
-	img_extensions.append("jpeg")
+
 	image_paths = []  # 用于存储图片路径的列表
 
 	# 递归遍历目录
@@ -176,6 +182,8 @@ def find_images(target_dir, call_back: callable = None):
 		for img_file in files:
 			# 当前文件后缀
 			extension = img_file.split('.')[-1]
+			# 转换为小写
+			extension = extension.lower()
 			if extension in img_extensions:
 		# for extension in img_extensions:
 			# 使用fnmatch过滤出图片文件,使用is_image?
@@ -190,6 +198,13 @@ def find_images(target_dir, call_back: callable = None):
 			# process_image(img_path)  # 示例处理函数调用
 
 	return image_paths
+
+
+def find_images_or_videos(target_dir, call_back: callable = None):
+	img_extensions = [img_ext for img_ext in [now_file_type.EXTENSION for now_file_type in FILETYPE_IMAGE]]
+	img_extensions.append("jpeg")
+	img_extensions.extend([now_file_type.EXTENSION for now_file_type in FILETYPE_VIDEO])
+	return find_files(target_dir, img_extensions, call_back)
 
 
 def is_video(video_path: str) -> bool:
