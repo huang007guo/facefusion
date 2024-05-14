@@ -414,6 +414,9 @@ def conditional_process() -> None:
 	old_output_video_resolution = facefusion.globals.output_video_resolution
 	old_output_image_resolution = facefusion.globals.output_image_resolution
 	start_time = time()
+	# 创建out目录
+	if facefusion.globals.output_path:
+		create_directory(facefusion.globals.output_path)
 	for frame_processor_module in get_frame_processors_modules(facefusion.globals.frame_processors):
 		while not frame_processor_module.post_check():
 			logger.disable()
@@ -422,9 +425,6 @@ def conditional_process() -> None:
 		if not frame_processor_module.pre_process('output'):
 			return
 	conditional_append_reference_faces()
-	# 创建out目录
-	if facefusion.globals.output_path:
-		create_directory(facefusion.globals.output_path)
 	if is_image(facefusion.globals.target_path):
 		process_image(start_time)
 	if is_video(facefusion.globals.target_path):
