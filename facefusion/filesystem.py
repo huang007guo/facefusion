@@ -103,6 +103,12 @@ def create_temp(target_path: str) -> None:
 		Path(out_temp_directory_path).mkdir(parents=True, exist_ok=True)
 
 
+# 创建目录
+def create_directory(directory_path: str) -> None:
+	logger.info(f'creating directory: {directory_path}', __name__.upper())
+	Path(directory_path).mkdir(parents=True, exist_ok=True)
+
+
 # 移动临时文件
 def move_temp(target_path: str, output_path: str) -> None:
 	temp_output_video_path = get_temp_output_video_path(target_path)

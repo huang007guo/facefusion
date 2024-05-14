@@ -39,7 +39,8 @@ from facefusion.memory import limit_system_memory
 from facefusion.statistics import conditional_log_statistics
 from facefusion.download import conditional_download
 from facefusion.filesystem import list_directory, get_temp_frame_paths, create_temp, move_temp, clear_temp, is_image, \
-	is_video, filter_audio_paths, resolve_relative_path, is_temp_moved, is_temp_file, find_images, find_images_or_videos
+	is_video, filter_audio_paths, resolve_relative_path, is_temp_moved, is_temp_file, find_images, \
+	find_images_or_videos, create_directory
 from facefusion.ffmpeg import extract_frames, merge_video, copy_image, finalize_image, restore_audio, replace_audio
 from facefusion.vision import read_image, read_static_images, detect_image_resolution, restrict_video_fps, \
 	create_image_resolutions, get_video_frame, detect_video_resolution, detect_video_fps, restrict_video_resolution, \
@@ -421,6 +422,9 @@ def conditional_process() -> None:
 		if not frame_processor_module.pre_process('output'):
 			return
 	conditional_append_reference_faces()
+	# 创建out目录
+	if facefusion.globals.output_path:
+		create_directory(facefusion.globals.output_path)
 	if is_image(facefusion.globals.target_path):
 		process_image(start_time)
 	if is_video(facefusion.globals.target_path):
@@ -513,6 +517,8 @@ def process_image(start_time: float) -> None:
 	# process image
 	for frame_processor_module in get_frame_processors_modules(facefusion.globals.frame_processors):
 		logger.info(wording.get('processing'), frame_processor_module.NAME)
+		# 如果是批量的list这里使用线程池
+		# facefusion.frame_processors.multi_process_frames(facefusion.globals.source_paths, temp_frame_paths, process_frames)
 		frame_processor_module.process_image(facefusion.globals.source_paths, normed_output_path, normed_output_path)
 		frame_processor_module.post_process()
 	if is_process_stopping():
