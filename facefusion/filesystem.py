@@ -105,7 +105,7 @@ def create_temp(target_path: str) -> None:
 
 # 创建目录
 def create_directory(directory_path: str) -> None:
-	logger.info(f'creating directory: {directory_path}', __name__.upper())
+	# logger.info(f'creating directory: {directory_path}', __name__.upper())
 	Path(directory_path).mkdir(parents=True, exist_ok=True)
 
 
