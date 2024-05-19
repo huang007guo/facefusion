@@ -3,13 +3,16 @@ import hashlib
 import os
 
 import facefusion.globals
-from facefusion.filesystem import is_directory
+from facefusion.filesystem import is_directory, is_video
 from facefusion.typing import Padding, Fps
 
 
 def normalize_output_path(target_path : Optional[str], output_path : Optional[str]) -> Optional[str]:
 	if target_path and output_path:
 		target_name, target_extension = os.path.splitext(os.path.basename(target_path))
+		# 如果是视频输出格式统一指定为mp4
+		if is_video(target_path):
+			target_extension = '.mp4'
 		if is_directory(output_path):
 			output_hash = hashlib.sha1(str(facefusion.globals.__dict__).encode('utf-8')).hexdigest()[:8]
 			output_name = target_name + '-' + output_hash
