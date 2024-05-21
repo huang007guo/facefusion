@@ -23,7 +23,7 @@ def run_ffmpeg(args : List[str], must_done : bool = False) -> bool:
 		return os.system(' '.join(commands)) == 0
 	process = subprocess.Popen(commands, stderr = subprocess.PIPE, stdout = subprocess.PIPE)
 
-	while process_manager.is_processing() or must_done:
+	while process_manager.is_processing():
 		try:
 			if facefusion.globals.log_level == 'debug':
 				log_debug(process)
