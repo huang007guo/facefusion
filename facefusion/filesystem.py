@@ -17,7 +17,71 @@ TEMP_DIRECTORY_PATH = os.path.join(tempfile.gettempdir(), 'facefusion')
 TEMP_OUTPUT_VIDEO_NAME = 'temp.mp4'
 
 
+# 判断是否存在输出的临时目录,并且里面有文件
+def exist_temp_directory(target_path: str) -> bool:
+	temp_directory_path = get_temp_directory_path(target_path)
+	if os.path.isdir(temp_directory_path) and has_files(temp_directory_path):
+		return True
+	return False
+
+
+# 判断是否需要范围取帧
+def is_need_range(total_frame) -> bool:
+	from facefusion.ffmpeg import is_use_history_frame
+	return is_use_history_frame and (
+		(facefusion.globals.trim_frame_start and facefusion.globals.trim_frame_start > 1) or (
+		facefusion.globals.trim_frame_end and facefusion.globals.trim_frame_end < total_frame))
+
+
+def get_temp_frame_paths_range(target_path, trim_frame_start, trim_frame_end):
+	"""
+	获取指定范围的帧路径
+	:param target_path:
+	:param trim_frame_start:
+	:param trim_frame_end:
+	:return:
+	"""
+	temp_directory_path = get_temp_directory_path(target_path)
+	# return [os.path.join(temp_directory_path, "{:04d}".format(now_frame) + '.' + facefusion.globals.temp_frame_format)
+	# 		for now_frame in range(trim_frame_start, trim_frame_end + 1)]
+	result = []
+	for now_frame in range(trim_frame_start, trim_frame_end+1):
+		file_path = os.path.join(temp_directory_path,
+								 "{:04d}".format(now_frame) + '.' +
+								 facefusion.globals.temp_frame_format)
+		if os.path.exists(file_path):
+			result.append(file_path)
+	return result
+
+
+def get_out_temp_frame_paths_range(target_path, trim_frame_start, trim_frame_end):
+	"""
+	获取指定范围的帧路径
+	:param target_path:
+	:param trim_frame_start:
+	:param trim_frame_end:
+	:return:
+	"""
+	temp_directory_path = get_out_temp_directory_path(target_path)
+	# return [os.path.join(temp_directory_path, "{:04d}".format(now_frame) + '.' + facefusion.globals.temp_frame_format)
+	# 		for now_frame in range(trim_frame_start, trim_frame_end + 1)]
+	result = []
+	for now_frame in range(trim_frame_start, trim_frame_end+1):
+		file_path = os.path.join(temp_directory_path,
+								 "{:04d}".format(now_frame) + '.' +
+								 facefusion.globals.temp_frame_format)
+		if os.path.exists(file_path):
+			result.append(file_path)
+	return result
+
+
 def get_temp_frame_paths(target_path: str) -> List[str]:
+	from facefusion.vision import count_video_frame_total
+	total_frame = count_video_frame_total(target_path)
+	# 如果是跳过的情况判断,并且临时目录有文件,并且指定开始帧结束帧,需要去手动匹配
+	if is_need_range(total_frame):
+		return get_temp_frame_paths_range(target_path, facefusion.globals.trim_frame_start or 1,
+										  facefusion.globals.trim_frame_end or total_frame)
 	temp_frames_pattern = get_temp_frames_pattern(target_path, '*')
 	return sorted(glob.glob(temp_frames_pattern))
 
@@ -30,6 +94,12 @@ def has_files(directory):
 
 
 def get_out_temp_frame_paths(target_path: str) -> List[str]:
+	from facefusion.vision import count_video_frame_total
+	total_frame = count_video_frame_total(target_path)
+	# 如果是跳过的情况判断,并且临时目录有文件,并且指定开始帧结束帧,需要去手动匹配
+	if is_need_range(total_frame):
+		return get_out_temp_frame_paths_range(target_path, facefusion.globals.trim_frame_start or 1,
+											  facefusion.globals.trim_frame_end or total_frame)
 	temp_frames_pattern = get_out_temp_frames_pattern(target_path, '*')
 	return sorted(glob.glob(temp_frames_pattern))
 
@@ -191,17 +261,17 @@ def find_files(target_dir, img_extensions, call_back: callable = None):
 			# 转换为小写
 			extension = extension.lower()
 			if extension in img_extensions:
-		# for extension in img_extensions:
-			# 使用fnmatch过滤出图片文件,使用is_image?
-			# for img_file in fnmatch.filter(files, extension):
+				# for extension in img_extensions:
+				# 使用fnmatch过滤出图片文件,使用is_image?
+				# for img_file in fnmatch.filter(files, extension):
 				# 获取完整的图片文件路径并添加到列表中
 				img_path = os.path.join(root, img_file)
 				if call_back:
 					call_back(img_path)
 				else:
 					image_paths.append(img_path)
-			# 这里可以根据需要对每个图片路径进行处理
-			# process_image(img_path)  # 示例处理函数调用
+	# 这里可以根据需要对每个图片路径进行处理
+	# process_image(img_path)  # 示例处理函数调用
 
 	return image_paths
 
