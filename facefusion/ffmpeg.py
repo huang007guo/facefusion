@@ -1,3 +1,4 @@
+import shutil
 from typing import List, Optional
 import os
 import subprocess
@@ -8,7 +9,7 @@ from facefusion import logger, process_manager
 from facefusion.typing import OutputVideoPreset, Fps, AudioBuffer
 from facefusion.filesystem import get_temp_frames_pattern, get_temp_output_video_path, get_temp_directory_path, \
 	get_out_temp_frames_pattern, has_files, exist_temp_directory, is_need_range, get_out_temp_frame_paths_range, \
-	get_temp_frame_paths_range, write_frame_range_file, read_frame_range_file
+	get_temp_frame_paths_range, write_frame_range_file, read_frame_range_file, clear_temp, create_temp
 from facefusion.vision import restrict_video_fps, count_video_frame_total
 
 # 是否使用了历史帧
@@ -65,7 +66,10 @@ def extract_frames(target_path: str, temp_video_resolution: str, temp_video_fps:
 		return True
 	is_use_history_frame = False
 	commands = ['-i', target_path, '-s', str(temp_video_resolution), '-q:v', '0']
-
+	# 重新提取之前清理目录,删除目录中所有文件
+	shutil.rmtree(get_temp_directory_path(target_path), ignore_errors=True)
+	# 重建
+	create_temp(target_path)
 	write_frame_range_file(target_path, trim_frame_start, trim_frame_end)
 	if trim_frame_start is not None and trim_frame_end is not None:
 		commands.extend(['-vf', 'trim=start_frame=' + str(trim_frame_start) + ':end_frame=' + str(

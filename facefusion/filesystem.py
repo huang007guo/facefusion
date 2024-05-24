@@ -28,10 +28,7 @@ def exist_temp_directory(target_path: str) -> bool:
 # 判断是否需要范围取帧
 def is_need_range(total_frame) -> bool:
 	from facefusion.ffmpeg import is_use_history_frame
-	is_need_range = is_use_history_frame and (
-		(facefusion.globals.trim_frame_start and facefusion.globals.trim_frame_start > 1) or (
-		facefusion.globals.trim_frame_end and facefusion.globals.trim_frame_end < total_frame))
-	if is_need_range:
+	if is_use_history_frame:
 		# 需要判断范围帧是否满足
 		old_start, old_end = read_frame_range_file(facefusion.globals.target_path)
 		if old_start or old_end:
@@ -39,9 +36,13 @@ def is_need_range(total_frame) -> bool:
 			old_end = old_end or total_frame
 			now_start = facefusion.globals.trim_frame_start or 1
 			now_end = facefusion.globals.trim_frame_end or total_frame
-			if now_start < old_start and now_end > old_end:
+			if now_start < old_start or now_end > old_end:
 				# 历史帧无法满足现有范围帧
 				raise Exception(f'history frame is not enough, history frame: {old_start} - {old_end}')
+		return (
+			(facefusion.globals.trim_frame_start and facefusion.globals.trim_frame_start > 1) or (
+			facefusion.globals.trim_frame_end and facefusion.globals.trim_frame_end < total_frame))
+	return False
 
 
 def get_temp_frame_paths_range(target_path, trim_frame_start, trim_frame_end):
