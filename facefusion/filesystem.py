@@ -28,9 +28,20 @@ def exist_temp_directory(target_path: str) -> bool:
 # 判断是否需要范围取帧
 def is_need_range(total_frame) -> bool:
 	from facefusion.ffmpeg import is_use_history_frame
-	return is_use_history_frame and (
+	is_need_range = is_use_history_frame and (
 		(facefusion.globals.trim_frame_start and facefusion.globals.trim_frame_start > 1) or (
 		facefusion.globals.trim_frame_end and facefusion.globals.trim_frame_end < total_frame))
+	if is_need_range:
+		# 需要判断范围帧是否满足
+		old_start, old_end = read_frame_range_file(facefusion.globals.target_path)
+		if old_start or old_end:
+			old_start = old_start or 1
+			old_end = old_end or total_frame
+			now_start = facefusion.globals.trim_frame_start or 1
+			now_end = facefusion.globals.trim_frame_end or total_frame
+			if now_start < old_start and now_end > old_end:
+				# 历史帧无法满足现有范围帧
+				raise Exception(f'history frame is not enough, history frame: {old_start} - {old_end}')
 
 
 def get_temp_frame_paths_range(target_path, trim_frame_start, trim_frame_end):
@@ -45,7 +56,13 @@ def get_temp_frame_paths_range(target_path, trim_frame_start, trim_frame_end):
 	# return [os.path.join(temp_directory_path, "{:04d}".format(now_frame) + '.' + facefusion.globals.temp_frame_format)
 	# 		for now_frame in range(trim_frame_start, trim_frame_end + 1)]
 	result = []
-	for now_frame in range(trim_frame_start, trim_frame_end+1):
+	# 需要判断范围帧是否满足
+	old_start, old_end = read_frame_range_file(target_path)
+	# 如果有历史开始帧需要减去
+	if old_start:
+		trim_frame_start -= (old_start-1)
+		trim_frame_end -= (old_start-1)
+	for now_frame in range(trim_frame_start, trim_frame_end + 1):
 		file_path = os.path.join(temp_directory_path,
 								 "{:04d}".format(now_frame) + '.' +
 								 facefusion.globals.temp_frame_format)
@@ -66,7 +83,13 @@ def get_out_temp_frame_paths_range(target_path, trim_frame_start, trim_frame_end
 	# return [os.path.join(temp_directory_path, "{:04d}".format(now_frame) + '.' + facefusion.globals.temp_frame_format)
 	# 		for now_frame in range(trim_frame_start, trim_frame_end + 1)]
 	result = []
-	for now_frame in range(trim_frame_start, trim_frame_end+1):
+	# 需要判断范围帧是否满足
+	old_start, old_end = read_frame_range_file(target_path)
+	# 如果有历史开始帧需要减去
+	if old_start:
+		trim_frame_start -= (old_start-1)
+		trim_frame_end -= (old_start-1)
+	for now_frame in range(trim_frame_start, trim_frame_end + 1):
 		file_path = os.path.join(temp_directory_path,
 								 "{:04d}".format(now_frame) + '.' +
 								 facefusion.globals.temp_frame_format)
@@ -108,6 +131,30 @@ def get_out_temp_frame_paths(target_path: str) -> List[str]:
 def is_temp_file(file_path: str) -> bool:
 	# 检查是否在tempfile.gettempdir()下
 	return file_path.startswith(tempfile.gettempdir())
+
+
+# 写入帧范围记录文件frame_range.txt
+def write_frame_range_file(target_path: str, trim_frame_start: int, trim_frame_end: int):
+	temp_directory_path = get_temp_directory_path(target_path)
+	frame_range_file_path = os.path.join(temp_directory_path, 'frame_range.txt')
+	if os.path.exists(frame_range_file_path):
+		os.remove(frame_range_file_path)
+	with open(frame_range_file_path, 'w') as f:
+		f.write(f'{trim_frame_start}-{trim_frame_end}')
+
+
+# 读取帧范围信息(通过读取文件frame_range.txt)
+def read_frame_range_file(target_path: str) -> Optional[tuple[int, int]]:
+	temp_directory_path = get_temp_directory_path(target_path)
+	frame_range_file_path = os.path.join(temp_directory_path, 'frame_range.txt')
+	if os.path.exists(frame_range_file_path):
+		with open(frame_range_file_path, 'r') as f:
+			frame_range_str = f.read()
+			frame_range_list = frame_range_str.split('-')
+			if len(frame_range_list) == 2:
+				return (None if frame_range_list[0] == 'None' else int(frame_range_list[0])), (
+					None if frame_range_list[1] == 'None' else int(frame_range_list[1]))
+	return (None, None)
 
 
 def get_temp_frames_pattern(target_path: str, temp_frame_prefix: str) -> str:
