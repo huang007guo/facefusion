@@ -67,7 +67,6 @@ def extract_frames(target_path: str, temp_video_resolution: str, temp_video_fps:
 	commands = ['-i', target_path, '-s', str(temp_video_resolution), '-q:v', '0']
 
 	write_frame_range_file(target_path, trim_frame_start, trim_frame_end)
-	print(read_frame_range_file(target_path))
 	if trim_frame_start is not None and trim_frame_end is not None:
 		commands.extend(['-vf', 'trim=start_frame=' + str(trim_frame_start) + ':end_frame=' + str(
 			trim_frame_end) + ',fps=' + str(temp_video_fps)])
