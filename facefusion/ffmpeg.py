@@ -14,11 +14,11 @@ from facefusion.vision import restrict_video_fps, count_video_frame_total
 
 # 是否使用了历史帧
 is_use_history_frame = False
-def run_ffmpeg(args: List[str], must_done: bool = False) -> bool:
+def run_ffmpeg(args: List[str], must_done: bool = False, skip_cuda: bool = False) -> bool:
 	# commands = [ 'ffmpeg']
 	commands = ['ffmpeg', '-hide_banner', '-loglevel', 'error']
 	# 增加 '-hwaccel', 'cuda'
-	if facefusion.globals.hwaccel_cuda:
+	if not skip_cuda and facefusion.globals.hwaccel_cuda:
 		commands.extend(['-hwaccel', 'cuda'])
 	commands.extend(args)
 	# 如果必须完成的,使用同步运行模式
@@ -141,14 +141,14 @@ def copy_image(target_path: str, output_path: str, temp_image_resolution: str) -
 	temp_image_compression = 100 if is_webp else 0
 	commands = ['-i', target_path, '-s', str(temp_image_resolution), '-q:v', str(temp_image_compression), '-y',
 				output_path]
-	return run_ffmpeg(commands)
+	return run_ffmpeg(commands, skip_cuda=True)
 
 
 def finalize_image(output_path: str, output_image_resolution: str) -> bool:
 	output_image_compression = round(31 - (facefusion.globals.output_image_quality * 0.31))
 	commands = ['-i', output_path, '-s', str(output_image_resolution), '-q:v', str(output_image_compression), '-y',
 				output_path]
-	return run_ffmpeg(commands)
+	return run_ffmpeg(commands, skip_cuda=True)
 
 
 def read_audio_buffer(target_path: str, sample_rate: int, channel_total: int) -> Optional[AudioBuffer]:

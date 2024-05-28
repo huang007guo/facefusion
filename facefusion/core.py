@@ -512,7 +512,7 @@ def process_image(start_time: float) -> None:
 	if copy_image(facefusion.globals.target_path, normed_output_path, temp_image_resolution):
 		logger.debug(wording.get('copying_image_succeed'), __name__.upper())
 	else:
-		logger.error(wording.get('copying_image_failed'), __name__.upper())
+		logger.error(wording.get('copying_image_failed')+' '+facefusion.globals.target_path+' to '+normed_output_path, __name__.upper())
 		return
 	# process image
 	for frame_processor_module in get_frame_processors_modules(facefusion.globals.frame_processors):
