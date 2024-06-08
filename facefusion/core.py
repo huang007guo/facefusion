@@ -185,6 +185,7 @@ def cli() -> None:
 	group_output_creation = program.add_argument_group('output creation')
 	group_output_creation.add_argument('--output-image-quality', help=wording.get('help.output_image_quality'),
 									   type=int,
+									   # 初版默认为80
 									   default=config.get_int_value('output_creation.output_image_quality', '90'),
 									   choices=facefusion.choices.output_image_quality_range,
 									   metavar=create_metavar(facefusion.choices.output_image_quality_range))
@@ -205,12 +206,19 @@ def cli() -> None:
 	# slow：较慢的编码速度，但质量更高。
 	# slower：比slow更慢的编码速度，质量进一步提高。
 	# veryslow：非常慢的编码速度，但提供最高质量。
+	# 	使用hevc_nvenc: if output_video_preset in ['ultrafast', 'superfast', 'veryfast', 'faster', 'fast']:
+	# 		return 'fast'
+	# 	if output_video_preset == 'medium':
+	# 		return 'medium'
+	# 	if output_video_preset in ['slow', 'slower', 'veryslow']:
+	# 		return 'slow'
 	group_output_creation.add_argument('--output-video-preset', help=wording.get('help.output_video_preset'),
 									   default=config.get_str_value('output_creation.output_video_preset', 'veryfast'),
 									   choices=facefusion.choices.output_video_presets)
 	# 输出视频质量从80->90
 	group_output_creation.add_argument('--output-video-quality', help=wording.get('help.output_video_quality'),
 									   type=int,
+									   # 这里初版为80
 									   default=config.get_int_value('output_creation.output_video_quality', '90'),
 									   choices=facefusion.choices.output_video_quality_range,
 									   metavar=create_metavar(facefusion.choices.output_video_quality_range))
