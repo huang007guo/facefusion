@@ -191,6 +191,34 @@ def cli() -> None:
 									   metavar=create_metavar(facefusion.choices.output_image_quality_range))
 	group_output_creation.add_argument('--output-image-resolution', help=wording.get('help.output_image_resolution'),
 									   default=config.get_str_value('output_creation.output_image_resolution'))
+	# libx264
+	# 类型: H.264/AVC 编码器。
+	# 开源: 是，基于MPEG-4 AVC标准。
+	# 特点: 提供高质量的视频压缩，广泛支持，CPU密集型，适用于软件编码。
+	# 应用场景: 网络视频、蓝光光盘、视频会议等。
+	# libx265
+	# 类型: H.265/HEVC 编码器。
+	# 开源: 是，基于H.265标准。
+	# 特点: 相比x264，提供更高的压缩效率（通常能减少约50%的比特率），但计算复杂度更高，对硬件要求较高。
+	# 应用场景: 4K超高清视频、高分辨率视频流、视频存储优化等。
+	# libvpx-vp9
+	# 类型: VP9 编码器，由Google开发。
+	# 开源: 是，开源且免费使用。
+	# 特点: 高压缩效率，特别适合网络视频应用，支持HDR，但相比H.265，编码速度较慢。
+	# 应用场景: YouTube、WebM格式视频、网页视频等。
+	# h264_nvenc, hevc_nvenc
+	# 类型: 分别对应基于NVIDIA GPU的H.264和H.265硬件加速编码器。
+	# 特点: 利用GPU进行视频编码，显著降低CPU负担，提高编码速度，但可能在某些场景下的压缩效率和质量上不如最佳的软件编码器。
+	# 应用场景: 实时视频处理、游戏直播、高性能视频转码等需要高效编码的场景。
+	# h264_amf, hevc_amf
+	# 类型: 分别对应基于AMD GPU的H.264和H.265硬件加速编码器。
+	# 特点: 同样利用GPU加速编码，减轻CPU压力，提升编码效率，与nvenc类似，但在不同硬件平台上的性能表现会有所差异。
+	# 应用场景: 与nvenc相似，适用于拥有AMD显卡的系统，进行高效视频处理和转码。
+	# 总结对比
+	# 压缩效率: libx265 > libvpx-vp9 > libx264 > (h264_nvenc/hevc_nvenc, h264_amf/hevc_amf)。硬件加速编码器在某些情况下可能因算法优化程度而有所不同。
+	# 资源消耗: 硬件加速编码器（如nvenc, amf）显著降低CPU使用，但可能需要更多GPU资源；软件编码器（如libx264, libx265）则更依赖CPU。
+	# 兼容性: libx264和libx265具有最广泛的兼容性，特别是在旧设备或不支持最新编解码标准的平台上。VP9在Web环境中得到良好支持，而硬件加速编码器则依赖于特定的GPU型号。
+	# 应用场景选择: 根据具体需求（如追求极致压缩、实时性、硬件条件等）来决定使用哪种编解码器。对于专业视频制作或存储空间有限的场景，libx265或libvpx-vp9可能是更好的选择；而对于需要快速编码、减轻CPU负担的应用，则应考虑硬件加速编码器。
 	group_output_creation.add_argument('--output-video-encoder', help=wording.get('help.output_video_encoder'),
 									   default=config.get_str_value('output_creation.output_video_encoder', 'libx264'),
 									   choices=facefusion.choices.output_video_encoders)
