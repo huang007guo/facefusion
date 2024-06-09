@@ -1,6 +1,9 @@
+import logging
+import os
 from configparser import ConfigParser
 from typing import Any, Optional, List
 
+from facefusion import logger
 from facefusion.filesystem import resolve_relative_path
 
 CONFIG = None
@@ -10,7 +13,8 @@ def get_config() -> ConfigParser:
 	global CONFIG
 
 	if CONFIG is None:
-		config_path = resolve_relative_path('../facefusion.ini')
+		config_path = os.getenv('FACEFUSION_CONFIG_PATH', resolve_relative_path('../facefusion.ini'))
+		print(f'loading config from {config_path}')
 		CONFIG = ConfigParser()
 		CONFIG.read(config_path, encoding = 'utf-8')
 	return CONFIG
